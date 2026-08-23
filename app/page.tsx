@@ -9,43 +9,301 @@ async function getImageFromProductUrl(
     const response = await fetch(productUrl, {
       headers: {
         "User-Agent":
-          "Mozilla/5.0 (compatible; BabyGiftRegistry/1.0)",
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) " +
+          "AppleWebKit/537.36 (KHTML, like Gecko) " +
+          "Chrome/140.0.0.0 Safari/537.36",
+
+        Accept:
+          "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+
+        "Accept-Language":
+          "de-CH,de;q=0.9,en;q=0.8,es;q=0.7",
+
+        "Cache-Control": "no-cache",
       },
+
+      redirect: "follow",
+
       next: {
         revalidate: 86400,
       },
     });
 
-    if (!response.ok) return null;
+    if (!response.ok) {
+      console.log(
+        `Could not fetch ${productUrl}: ${response.status}`
+      );
+      return null;
+    }
 
     const html = await response.text();
 
-    const ogImage =
-      html.match(
-        /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i
-      ) ||
-      html.match(
-        /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i
-      );
+    // ---------------------------------------------
+    // Helper: convert relative URLs to absolute URLs
+    // ---------------------------------------------
 
-    if (ogImage?.[1]) {
-      return new URL(ogImage[1], productUrl).href;
+    const makeAbsolute = (url?: string | null) => {
+      if (!url) return null;
+
+      let cleanUrl = url
+        .replace(/&amp;/g, "&")
+        .replace(/\\u0026/g, "&")
+        .replace(/\\\//g, "/")
+        .trim();
+
+      // Protocol-relative URL: //cdn.shop.com/image.jpg
+      if (cleanUrl.startsWith("//")) {
+        cleanUrl = `https:${cleanUrl}`;
+      }
+
+      try {
+        return new URL(cleanUrl, productUrl).href;
+      } catch {
+        return null;
+      }
+    };
+
+    // ---------------------------------------------
+    // 1. Open Graph image
+    // ---------------------------------------------
+
+    const ogPatterns = [
+      /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["'][^>]*>/i,
+      /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["'][^>]*>/i,
+      /<meta[^>]+property=["']og:image:secure_url["'][^>]+content=["']([^"']+)["'][^>]*>/i,
+      /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image:secure_url["'][^>]*>/i,
+    ];
+
+    for (const pattern of ogPatterns) {
+      const match = html.match(pattern);
+
+      if (match?.[1]) {
+        const url = makeAbsolute(match[1]);
+
+        if (url) return url;
+      }
     }
 
-    const twitterImage =
-      html.match(
-        /<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i
-      ) ||
-      html.match(
-        /<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image["']/i
-      );
+    // ---------------------------------------------
+    // 2. Twitter image
+    // ---------------------------------------------
 
-    if (twitterImage?.[1]) {
-      return new URL(twitterImage[1], productUrl).href;
+    const twitterPatterns = [
+      /<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["'][^>]*>/i,
+      /<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image["'][^>]*>/i,
+      /<meta[^>]+property=["']twitter:image["'][^>]+content=["']([^"']+)["'][^>]*>/i,
+      /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']twitter:image["'][^>]*>/i,
+    ];
+
+    for (const pattern of twitterPatterns) {
+      const match = html.match(pattern);
+
+      if (match?.[1]) {
+        const url = makeAbsolute(match[1]);
+
+        if (url) return url;
+      }
     }
+
+    // ---------------------------------------------
+    // 3. Schema.org / itemprop image
+    // ---------------------------------------------
+
+    const itemPropPatterns = [
+      /<meta[^>]+itemprop=["']image["'][^>]+content=["']([^"']+)["'][^>]*>/i,
+      /<meta[^>]+content=["']([^"']+)["'][^>]+itemprop=["']image["'][^>]*>/i,
+      /<link[^>]+itemprop=["']image["'][^>]+href=["']([^"']+)["'][^>]*>/i,
+    ];
+
+    for (const pattern of itemPropPatterns) {
+      const match = html.match(pattern);
+
+      if (match?.[1]) {
+        const url = makeAbsolute(match[1]);
+
+        if (url) return url;
+      }
+    }
+
+    // ---------------------------------------------
+    // 4. JSON-LD Product image
+    // Works with many Shopify / ecommerce websites
+    // ---------------------------------------------
+
+    const jsonLdBlocks = html.match(
+      /<script[^>]+type=["']application\/ld\+json["'][^>]*>[\s\S]*?<\/script>/gi
+    );
+
+    if (jsonLdBlocks) {
+      for (const block of jsonLdBlocks) {
+        try {
+          const jsonText = block
+            .replace(/^<script[^>]*>/i, "")
+            .replace(/<\/script>$/i, "")
+            .trim();
+
+          const json = JSON.parse(jsonText);
+
+          const findProductImage = (value: any): string | null => {
+            if (!value) return null;
+
+            if (Array.isArray(value)) {
+              for (const item of value) {
+                const result = findProductImage(item);
+
+                if (result) return result;
+              }
+
+              return null;
+            }
+
+            if (typeof value !== "object") return null;
+
+            const type = value["@type"];
+
+            const isProduct =
+              type === "Product" ||
+              (Array.isArray(type) && type.includes("Product"));
+
+            if (isProduct && value.image) {
+              if (typeof value.image === "string") {
+                return value.image;
+              }
+
+              if (
+                Array.isArray(value.image) &&
+                value.image.length > 0
+              ) {
+                const first = value.image[0];
+
+                if (typeof first === "string") {
+                  return first;
+                }
+
+                if (first?.url) {
+                  return first.url;
+                }
+
+                if (first?.contentUrl) {
+                  return first.contentUrl;
+                }
+              }
+
+              if (value.image?.url) {
+                return value.image.url;
+              }
+
+              if (value.image?.contentUrl) {
+                return value.image.contentUrl;
+              }
+            }
+
+            for (const child of Object.values(value)) {
+              const result = findProductImage(child);
+
+              if (result) return result;
+            }
+
+            return null;
+          };
+
+          const image = findProductImage(json);
+
+          if (image) {
+            const url = makeAbsolute(image);
+
+            if (url) return url;
+          }
+        } catch {
+          // Ignore invalid JSON-LD blocks
+        }
+      }
+    }
+
+    // ---------------------------------------------
+    // 5. Common ecommerce JSON image properties
+    // ---------------------------------------------
+
+    const jsonImagePatterns = [
+      /"featured_image"\s*:\s*"([^"]+)"/i,
+      /"featuredImage"\s*:\s*"([^"]+)"/i,
+      /"image_url"\s*:\s*"([^"]+)"/i,
+      /"imageUrl"\s*:\s*"([^"]+)"/i,
+      /"image"\s*:\s*"([^"]+\.(?:jpg|jpeg|png|webp|avif)[^"]*)"/i,
+      /"src"\s*:\s*"([^"]+\.(?:jpg|jpeg|png|webp|avif)[^"]*)"/i,
+    ];
+
+    for (const pattern of jsonImagePatterns) {
+      const match = html.match(pattern);
+
+      if (match?.[1]) {
+        const url = makeAbsolute(match[1]);
+
+        if (url) return url;
+      }
+    }
+
+    // ---------------------------------------------
+    // 6. Product image HTML
+    // ---------------------------------------------
+
+    const productImagePatterns = [
+      /<img[^>]+class=["'][^"']*(?:product|gallery|main-image)[^"']*["'][^>]+src=["']([^"']+)["']/i,
+
+      /<img[^>]+src=["']([^"']+)["'][^>]+class=["'][^"']*(?:product|gallery|main-image)[^"']*["']/i,
+
+      /<img[^>]+data-src=["']([^"']+)["'][^>]*>/i,
+
+      /<img[^>]+data-original=["']([^"']+)["'][^>]*>/i,
+    ];
+
+    for (const pattern of productImagePatterns) {
+      const match = html.match(pattern);
+
+      if (match?.[1]) {
+        const url = makeAbsolute(match[1]);
+
+        if (url) return url;
+      }
+    }
+
+    // ---------------------------------------------
+    // 7. srcset fallback
+    // Take the largest image listed
+    // ---------------------------------------------
+
+    const srcsetMatch = html.match(
+      /<img[^>]+srcset=["']([^"']+)["'][^>]*>/i
+    );
+
+    if (srcsetMatch?.[1]) {
+      const candidates = srcsetMatch[1]
+        .split(",")
+        .map((item) => item.trim().split(/\s+/)[0])
+        .filter(Boolean);
+
+      if (candidates.length > 0) {
+        const candidate = candidates[candidates.length - 1];
+
+        const url = makeAbsolute(candidate);
+
+        if (url) return url;
+      }
+    }
+
+    // ---------------------------------------------
+    // Nothing found
+    // ---------------------------------------------
+
+    console.log(`No product image found for ${productUrl}`);
 
     return null;
-  } catch {
+  } catch (error) {
+    console.error(
+      `Image extraction failed for ${productUrl}`,
+      error
+    );
+
     return null;
   }
 }
