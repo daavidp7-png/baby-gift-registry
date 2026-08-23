@@ -1,333 +1,226 @@
 type AirtableAttachment = {
-
   url: string;
-
-  filename: string;
-
+  filename?: string;
 };
 
 type GiftRecord = {
-
   id: string;
-
   fields: {
-
     "Gift Name"?: string;
-
     Brand?: string;
-
     Category?: string;
-
     Description?: string;
-
     Image?: AirtableAttachment[];
-
     "Product URL"?: string;
-
     Store?: string;
-
     Price?: number;
-
     Priority?: string;
-
     Status?: string;
-
     "Display Order"?: number;
-
     Featured?: boolean;
-
     Active?: boolean;
-
   };
-
 };
 
-async function getGifts() {
-
+async function getGifts(): Promise<GiftRecord[]> {
   const token = process.env.AIRTABLE_TOKEN;
-
   const baseId = process.env.AIRTABLE_BASE_ID;
 
-  if (!token || !baseId) {
-
-    throw new Error("Missing Airtable environment variables");
-
+  if (!token) {
+    throw new Error("AIRTABLE_TOKEN is missing");
   }
 
-  const params = new URLSearchParams();
-
-  params.set(
-
-    "filterByFormula",
-
-    "AND({Active}=1)"
-
-  );
-
-  params.set(
-
-    "sort[0][field]",
-
-    "Display Order"
-
-  );
-
-  params.set(
-
-    "sort[0][direction]",
-
-    "asc"
-
-  );
-
-  const response = await fetch(
-
-    `https://api.airtable.com/v0/${baseId}/tblzgy8G8TzSF0NA9?${params.toString()}`,
-
-    {
-
-      headers: {
-
-        Authorization: `Bearer ${token}`,
-
-      },
-
-      cache: "no-store",
-
-    }
-
-  );
-
-  if (!response.ok) {
-
-    const error = await response.text();
-
-    throw new Error(`Airtable error: ${error}`);
-
+  if (!baseId) {
+    throw new Error("AIRTABLE_BASE_ID is missing");
   }
+
+  // Use the table NAME now that we have confirmed the base/token work.
+  const url = `https://api.airtable.com/v0/${baseId}/${encodeURIComponent(
+    "Gifts"
+  )}`;
+
+  const response = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    cache: "no-store",
+  });
 
   const data = await response.json();
 
-  return data.records as GiftRecord[];
+  if (!response.ok) {
+    console.error("Airtable Gifts error:", data);
 
+    throw new Error(
+      `Could not load gifts from Airtable (${response.status})`
+    );
+  }
+
+  const records = (data.records ?? []) as GiftRecord[];
+
+  // Filter and sort HERE instead of asking Airtable to do it.
+  return records
+    .filter((gift) => gift.fields.Active !== false)
+    .sort(
+      (a, b) =>
+        (a.fields["Display Order"] ?? 9999) -
+        (b.fields["Display Order"] ?? 9999)
+    );
 }
 
 export default async function Home() {
-
   const gifts = await getGifts();
 
   return (
-
-    <main className="min-h-screen bg-[#faf7f5] text-[#2f2a28]">
-
-      <section className="mx-auto max-w-6xl px-6 py-16">
-
-        <div className="mb-14 text-center">
-
-          <p className="mb-3 text-sm uppercase tracking-[0.25em] text-[#9c8177]">
-
+    <main className="min-h-screen bg-[#faf7f5] text-[#302b29]">
+      <section className="mx-auto max-w-7xl px-5 py-14 sm:px-8 lg:px-10">
+        <header className="mx-auto mb-14 max-w-3xl text-center">
+          <p className="mb-3 text-xs font-medium uppercase tracking-[0.3em] text-[#a18479]">
             Baby Registry
-
           </p>
 
-          <h1 className="text-4xl font-semibold tracking-tight md:text-6xl">
-
-            Our little girl's gift list
-
+          <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl md:text-6xl">
+            Our baby girl&apos;s gift list
           </h1>
 
-          <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-[#756b67] md:text-lg">
-
-            We are so excited to welcome our baby girl. If you would like to
-
-            give her something, these are a few things we have chosen for her.
-
+          <p className="mx-auto mt-6 max-w-2xl text-base leading-7 text-[#756b67] sm:text-lg">
+            We are so excited to welcome our little girl. If you would like to
+            give her something, here are some of the things we have chosen for
+            her.
           </p>
+        </header>
 
-        </div>
+        {gifts.length === 0 ? (
+          <div className="rounded-3xl bg-white p-10 text-center shadow-sm">
+            <p>No gifts are available yet.</p>
+          </div>
+        ) : (
+          <div className="grid gap-7 sm:grid-cols-2 lg:grid-cols-3">
+            {gifts.map((gift) => {
+              const {
+                Brand,
+                Category,
+                Description,
+                Image,
+                Price,
+                Priority,
+                Status = "Available",
+                Featured,
+              } = gift.fields;
 
-        <div className="grid gap-7 sm:grid-cols-2 lg:grid-cols-3">
+              const name = gift.fields["Gift Name"] ?? "Gift";
+              const productUrl = gift.fields["Product URL"];
+              const image = Image?.[0]?.url;
 
-          {gifts.map((gift) => {
+              const available = Status === "Available";
 
-            const image = gift.fields.Image?.[0]?.url;
+              return (
+                <article
+                  key={gift.id}
+                  className="overflow-hidden rounded-[28px] bg-white shadow-sm ring-1 ring-black/5"
+                >
+                  <div className="aspect-[4/3] overflow-hidden bg-[#eee8e5]">
+                    {image ? (
+                      <img
+                        src={image}
+                        alt={name}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-sm text-[#a0948f]">
+                        No image
+                      </div>
+                    )}
+                  </div>
 
-            const status = gift.fields.Status ?? "Available";
+                  <div className="p-6">
+                    <div className="mb-3 flex items-start justify-between gap-3">
+                      <div>
+                        {Brand && (
+                          <p className="text-xs uppercase tracking-[0.18em] text-[#a18e86]">
+                            {Brand}
+                          </p>
+                        )}
 
-            const available = status === "Available";
+                        <h2 className="mt-1 text-xl font-semibold">{name}</h2>
 
-            return (
+                        {Category && (
+                          <p className="mt-1 text-sm text-[#8b807b]">
+                            {Category}
+                          </p>
+                        )}
+                      </div>
 
-              <article
-
-                key={gift.id}
-
-                className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-black/5"
-
-              >
-
-                <div className="aspect-[4/3] bg-[#f1ece9]">
-
-                  {image ? (
-
-                    <img
-
-                      src={image}
-
-                      alt={gift.fields["Gift Name"] ?? "Gift"}
-
-                      className="h-full w-full object-cover"
-
-                    />
-
-                  ) : (
-
-                    <div className="flex h-full items-center justify-center text-sm text-[#9d918c]">
-
-                      No image
-
+                      {Featured && (
+                        <span className="whitespace-nowrap rounded-full bg-[#f6e7e4] px-3 py-1 text-xs font-medium text-[#97675e]">
+                          Featured
+                        </span>
+                      )}
                     </div>
 
-                  )}
+                    {Description && (
+                      <p className="mb-5 text-sm leading-6 text-[#756b67]">
+                        {Description}
+                      </p>
+                    )}
 
-                </div>
+                    <div className="mb-5 flex items-center justify-between gap-3">
+                      <div>
+                        {typeof Price === "number" && (
+                          <p className="text-lg font-semibold">
+                            CHF {Price.toFixed(2)}
+                          </p>
+                        )}
 
-                <div className="p-6">
+                        {Priority && (
+                          <p className="mt-1 text-xs text-[#958985]">
+                            {Priority}
+                          </p>
+                        )}
+                      </div>
 
-                  <div className="mb-3 flex items-start justify-between gap-4">
+                      <span
+                        className={`rounded-full px-3 py-1.5 text-xs font-medium ${
+                          available
+                            ? "bg-[#e7f0e8] text-[#52705b]"
+                            : "bg-[#eeeae8] text-[#837873]"
+                        }`}
+                      >
+                        {Status}
+                      </span>
+                    </div>
 
-                    <div>
-
-                      {gift.fields.Brand && (
-
-                        <p className="text-xs uppercase tracking-[0.18em] text-[#a18e86]">
-
-                          {gift.fields.Brand}
-
-                        </p>
-
+                    <div className="flex gap-3">
+                      {productUrl && (
+                        <a
+                          href={productUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex-1 rounded-full border border-[#d8cec9] px-4 py-3 text-center text-sm font-medium hover:bg-[#f8f3f1]"
+                        >
+                          View gift
+                        </a>
                       )}
 
-                      <h2 className="mt-1 text-xl font-semibold">
-
-                        {gift.fields["Gift Name"]}
-
-                      </h2>
-
-                    </div>
-
-                    {gift.fields.Featured && (
-
-                      <span className="rounded-full bg-[#f6e7e4] px-3 py-1 text-xs font-medium text-[#9b675e]">
-
-                        Favourite
-
-                      </span>
-
-                    )}
-
-                  </div>
-
-                  {gift.fields.Description && (
-
-                    <p className="mb-5 text-sm leading-6 text-[#756b67]">
-
-                      {gift.fields.Description}
-
-                    </p>
-
-                  )}
-
-                  <div className="mb-5 flex items-center justify-between">
-
-                    <span className="text-lg font-semibold">
-
-                      {typeof gift.fields.Price === "number"
-
-                        ? `CHF ${gift.fields.Price.toFixed(2)}`
-
-                        : ""}
-
-                    </span>
-
-                    <span
-
-                      className={`rounded-full px-3 py-1 text-xs font-medium ${
-
-                        available
-
-                          ? "bg-[#e8f1ea] text-[#52705b]"
-
-                          : "bg-[#f0ecea] text-[#8a7e79]"
-
-                      }`}
-
-                    >
-
-                      {status}
-
-                    </span>
-
-                  </div>
-
-                  <div className="flex gap-3">
-
-                    {gift.fields["Product URL"] && (
-
-                      <a
-
-                        href={gift.fields["Product URL"]}
-
-                        target="_blank"
-
-                        rel="noreferrer"
-
-                        className="flex-1 rounded-full border border-[#d8cec9] px-4 py-3 text-center text-sm font-medium transition hover:bg-[#f8f3f1]"
-
+                      <button
+                        type="button"
+                        disabled={!available}
+                        className={`flex-1 rounded-full px-4 py-3 text-sm font-medium ${
+                          available
+                            ? "bg-[#302b29] text-white hover:bg-[#514844]"
+                            : "cursor-not-allowed bg-[#ebe7e5] text-[#9c918c]"
+                        }`}
                       >
-
-                        View gift
-
-                      </a>
-
-                    )}
-
-                    <button
-
-                      disabled={!available}
-
-                      className={`flex-1 rounded-full px-4 py-3 text-sm font-medium transition ${
-
-                        available
-
-                          ? "bg-[#2f2a28] text-white hover:bg-[#514844]"
-
-                          : "cursor-not-allowed bg-[#ebe7e5] text-[#9c918c]"
-
-                      }`}
-
-                    >
-
-                      {available ? "Reserve" : status}
-
-                    </button>
-
+                        {available ? "Reserve" : Status}
+                      </button>
+                    </div>
                   </div>
-
-                </div>
-
-              </article>
-
-            );
-
-          })}
-
-        </div>
-
+                </article>
+              );
+            })}
+          </div>
+        )}
       </section>
-
     </main>
-
   );
-
 }
