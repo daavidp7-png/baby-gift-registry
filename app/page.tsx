@@ -1,5 +1,55 @@
 import GiftGrid, { type GiftRecord } from "./GiftGrid";
 
+async function getImageFromProductUrl(
+  productUrl?: string
+): Promise<string | null> {
+  if (!productUrl) return null;
+
+  try {
+    const response = await fetch(productUrl, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (compatible; BabyGiftRegistry/1.0)",
+      },
+      next: {
+        revalidate: 86400,
+      },
+    });
+
+    if (!response.ok) return null;
+
+    const html = await response.text();
+
+    const ogImage =
+      html.match(
+        /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i
+      ) ||
+      html.match(
+        /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i
+      );
+
+    if (ogImage?.[1]) {
+      return new URL(ogImage[1], productUrl).href;
+    }
+
+    const twitterImage =
+      html.match(
+        /<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i
+      ) ||
+      html.match(
+        /<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image["']/i
+      );
+
+    if (twitterImage?.[1]) {
+      return new URL(twitterImage[1], productUrl).href;
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 async function getGifts(): Promise<GiftRecord[]> {
   const token = process.env.AIRTABLE_TOKEN;
   const baseId = process.env.AIRTABLE_BASE_ID;
@@ -35,13 +85,44 @@ async function getGifts(): Promise<GiftRecord[]> {
 
   const records = (data.records ?? []) as GiftRecord[];
 
-  return records
-    .filter((gift) => gift.fields.Active !== false)
-    .sort(
-      (a, b) =>
-        (a.fields["Display Order"] ?? 9999) -
-        (b.fields["Display Order"] ?? 9999)
-    );
+const activeRecords = records
+  .filter((gift) => gift.fields.Active !== false)
+  .sort(
+    (a, b) =>
+      (a.fields["Display Order"] ?? 9999) -
+      (b.fields["Display Order"] ?? 9999)
+  );
+
+const recordsWithImages = await Promise.all(
+  activeRecords.map(async (gift) => {
+    // Keep the Airtable image if one already exists
+    if (gift.fields.Image?.[0]?.url) {
+      return gift;
+    }
+
+    const productUrl = gift.fields["Product URL"];
+    const imageUrl = await getImageFromProductUrl(productUrl);
+
+    if (!imageUrl) {
+      return gift;
+    }
+
+    return {
+      ...gift,
+      fields: {
+        ...gift.fields,
+        Image: [
+          {
+            url: imageUrl,
+            filename: "product-image",
+          },
+        ],
+      },
+    };
+  })
+);
+
+return recordsWithImages;
 }
 
 export default async function Home() {
