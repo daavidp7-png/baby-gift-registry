@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
+import ReservationModal from "./ReservationModal";
 
 type AirtableAttachment = {
   url: string;
@@ -45,6 +46,13 @@ export default function GiftGrid({ gifts }: { gifts: GiftRecord[] }) {
     () => new Set(["price"])
   );
   const [selectedCategories, setSelectedCategories] = useState<Set<string>>(
+    () => new Set()
+  );
+  const [selectedGift, setSelectedGift] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+  const [reservedGiftIds, setReservedGiftIds] = useState<Set<string>>(
     () => new Set()
   );
   const [failedImages, setFailedImages] = useState<Set<string>>(
@@ -399,7 +407,10 @@ export default function GiftGrid({ gifts }: { gifts: GiftRecord[] }) {
           const image = giftImages?.[0]?.url;
           const imageFailed = failedImages.has(gift.id);
 
-          const available = Status === "Available";
+          const currentStatus = reservedGiftIds.has(gift.id)
+            ? "Reserved"
+            : Status;
+          const available = currentStatus === "Available";
 
           return (
             <article
@@ -488,7 +499,7 @@ export default function GiftGrid({ gifts }: { gifts: GiftRecord[] }) {
                         : "bg-[#eeeae8] text-[#837873]"
                     }`}
                   >
-                    {Status}
+                    {currentStatus}
                   </span>
                 </div>
 
@@ -507,13 +518,16 @@ export default function GiftGrid({ gifts }: { gifts: GiftRecord[] }) {
                   <button
                     type="button"
                     disabled={!available}
+                    onClick={() =>
+                      setSelectedGift({ id: gift.id, name })
+                    }
                     className={`flex-1 rounded-full px-3 py-2.5 text-sm font-medium ${
                       available
                         ? "bg-[#302b29] text-white hover:bg-[#514844]"
                         : "cursor-not-allowed bg-[#ebe7e5] text-[#9c918c]"
                     }`}
                   >
-                    {available ? "Reserve" : Status}
+                    {available ? "Reserve" : currentStatus}
                   </button>
                 </div>
               </div>
@@ -521,6 +535,21 @@ export default function GiftGrid({ gifts }: { gifts: GiftRecord[] }) {
           );
         })}
       </div>
+
+      {selectedGift && (
+        <ReservationModal
+          giftId={selectedGift.id}
+          giftName={selectedGift.name}
+          onClose={() => setSelectedGift(null)}
+          onReserved={() =>
+            setReservedGiftIds((current) => {
+              const next = new Set(current);
+              next.add(selectedGift.id);
+              return next;
+            })
+          }
+        />
+      )}
     </>
   );
 }
