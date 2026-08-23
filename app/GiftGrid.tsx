@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useMemo, useState } from "react";
 
 type AirtableAttachment = {
@@ -30,6 +31,17 @@ type SortOption = "recommended" | "price-asc" | "price-desc";
 
 export default function GiftGrid({ gifts }: { gifts: GiftRecord[] }) {
   const [sort, setSort] = useState<SortOption>("recommended");
+  const [failedImages, setFailedImages] = useState<Set<string>>(
+    () => new Set()
+  );
+
+  const markImageAsFailed = (giftId: string) => {
+    setFailedImages((current) => {
+      const next = new Set(current);
+      next.add(giftId);
+      return next;
+    });
+  };
 
   const sortedGifts = useMemo(() => {
     const items = [...gifts];
@@ -81,7 +93,7 @@ export default function GiftGrid({ gifts }: { gifts: GiftRecord[] }) {
             Brand,
             Category,
             Description,
-            Image,
+            Image: giftImages,
             Price,
             Priority,
             Status = "Available",
@@ -90,7 +102,8 @@ export default function GiftGrid({ gifts }: { gifts: GiftRecord[] }) {
 
           const name = gift.fields["Gift Name"] ?? "Gift";
           const productUrl = gift.fields["Product URL"];
-          const image = Image?.[0]?.url;
+          const image = giftImages?.[0]?.url;
+          const imageFailed = failedImages.has(gift.id);
 
           const available = Status === "Available";
 
@@ -99,16 +112,31 @@ export default function GiftGrid({ gifts }: { gifts: GiftRecord[] }) {
               key={gift.id}
               className="overflow-hidden rounded-[28px] bg-white shadow-sm ring-1 ring-black/5"
             >
-              <div className="aspect-[4/3] overflow-hidden bg-[#eee8e5]">
-                {image ? (
-                  <img
+              <div className="relative aspect-[4/3] overflow-hidden bg-[#eee8e5]">
+                {image && !imageFailed ? (
+                  <Image
                     src={image}
                     alt={name}
+                    fill
+                    sizes="(max-width: 639px) 100vw, (max-width: 1023px) 50vw, 33vw"
                     className="h-full w-full object-cover"
+                    onError={() => markImageAsFailed(gift.id)}
                   />
                 ) : (
-                  <div className="flex h-full items-center justify-center text-sm text-[#a0948f]">
-                    No image
+                  <div className="flex h-full flex-col items-center justify-center gap-2 text-sm text-[#a0948f]">
+                    <svg
+                      aria-hidden="true"
+                      viewBox="0 0 24 24"
+                      className="h-8 w-8"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                    >
+                      <path d="M4 7.5A2.5 2.5 0 0 1 6.5 5h11A2.5 2.5 0 0 1 20 7.5v9a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.5v-9Z" />
+                      <path d="m5 16 4.5-4.5 3.25 3.25 2-2L19 17" />
+                      <circle cx="15.5" cy="9" r="1.25" />
+                    </svg>
+                    <span>Image unavailable</span>
                   </div>
                 )}
               </div>

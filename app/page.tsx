@@ -1,4 +1,5 @@
 import GiftGrid, { type GiftRecord } from "./GiftGrid";
+import { createImageProxyUrl } from "./lib/imageProxy";
 
 async function getImageFromProductUrl(
   productUrl?: string
@@ -355,7 +356,21 @@ const recordsWithImages = await Promise.all(
   activeRecords.map(async (gift) => {
     // Keep the Airtable image if one already exists
     if (gift.fields.Image?.[0]?.url) {
-      return gift;
+      const [firstImage, ...otherImages] = gift.fields.Image;
+
+      return {
+        ...gift,
+        fields: {
+          ...gift.fields,
+          Image: [
+            {
+              ...firstImage,
+              url: createImageProxyUrl(firstImage.url),
+            },
+            ...otherImages,
+          ],
+        },
+      };
     }
 
     const productUrl = gift.fields["Product URL"];
@@ -371,7 +386,7 @@ const recordsWithImages = await Promise.all(
         ...gift.fields,
         Image: [
           {
-            url: imageUrl,
+            url: createImageProxyUrl(imageUrl, productUrl),
             filename: "product-image",
           },
         ],
