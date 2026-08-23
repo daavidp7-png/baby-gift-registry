@@ -160,8 +160,8 @@ export default function GiftGrid({ gifts }: { gifts: GiftRecord[] }) {
 
   return (
     <>
-      <div className="mb-8">
-        <div className="flex justify-end py-4">
+      <div className="mb-6">
+        <div className="flex justify-end py-2">
           <button
             type="button"
             aria-expanded={filtersOpen}
@@ -188,9 +188,9 @@ export default function GiftGrid({ gifts }: { gifts: GiftRecord[] }) {
               role="dialog"
               aria-modal="true"
               aria-labelledby="filters-title"
-              className="absolute inset-y-0 right-0 flex w-full max-w-xl flex-col bg-white shadow-2xl"
+              className="absolute inset-y-0 right-0 flex w-full max-w-lg flex-col bg-white shadow-2xl"
             >
-              <header className="flex items-center justify-between border-b border-[#d8cec9] px-6 py-6 sm:px-10">
+              <header className="flex items-center justify-between border-b border-[#d8cec9] px-5 py-4 sm:px-8">
                 <h2
                   id="filters-title"
                   className="text-lg font-semibold uppercase tracking-[0.04em] text-[#171717]"
@@ -201,12 +201,12 @@ export default function GiftGrid({ gifts }: { gifts: GiftRecord[] }) {
                   type="button"
                   onClick={() => setFiltersOpen(false)}
                   aria-label="Close filters"
-                  className="p-2 text-[#302b29]"
+                  className="p-1.5 text-[#302b29]"
                 >
                   <svg
                     aria-hidden="true"
                     viewBox="0 0 24 24"
-                    className="h-6 w-6"
+                    className="h-5 w-5"
                     fill="none"
                     stroke="currentColor"
                     strokeWidth="1.5"
@@ -216,22 +216,22 @@ export default function GiftGrid({ gifts }: { gifts: GiftRecord[] }) {
                 </button>
               </header>
 
-              <div className="flex-1 overflow-y-auto px-6 sm:px-10">
-                <div className="border-b border-[#d8cec9] py-6">
+              <div className="flex-1 overflow-y-auto px-5 sm:px-8">
+                <div className="border-b border-[#d8cec9] py-4">
                   <label
                     htmlFor="gift-sort"
                     className="block text-base font-semibold uppercase"
                   >
                     Sort by
                   </label>
-                  <div className="relative mt-4">
+                  <div className="relative mt-3">
                     <select
                       id="gift-sort"
                       value={sort}
                       onChange={(event) =>
                         setSort(event.target.value as SortOption)
                       }
-                      className="w-full appearance-none border border-[#d8cec9] bg-white px-4 py-3 pr-11 text-sm text-[#302b29] outline-none focus:border-[#302b29]"
+                      className="w-full appearance-none border border-[#d8cec9] bg-white px-3 py-2.5 pr-10 text-sm text-[#302b29] outline-none focus:border-[#302b29]"
                     >
                       <option value="recommended">Recommended</option>
                       <option value="price-asc">Price: low to high</option>
@@ -240,7 +240,7 @@ export default function GiftGrid({ gifts }: { gifts: GiftRecord[] }) {
                     <svg
                       aria-hidden="true"
                       viewBox="0 0 24 24"
-                      className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2"
+                      className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2"
                       fill="none"
                       stroke="currentColor"
                       strokeWidth="1.5"
@@ -250,7 +250,7 @@ export default function GiftGrid({ gifts }: { gifts: GiftRecord[] }) {
                   </div>
                 </div>
 
-                <div className="border-b border-[#d8cec9] py-6">
+                <div className="border-b border-[#d8cec9] py-4">
                   <button
                     type="button"
                     aria-expanded={openSections.has("price")}
@@ -264,7 +264,7 @@ export default function GiftGrid({ gifts }: { gifts: GiftRecord[] }) {
                   </button>
 
                   {openSections.has("price") && (
-                    <div className="mt-6 px-1">
+                    <div className="mt-4 px-1">
                       <div className="price-range-control">
                         <div className="price-range-track" />
                         <div
@@ -315,7 +315,7 @@ export default function GiftGrid({ gifts }: { gifts: GiftRecord[] }) {
                   )}
                 </div>
 
-                <div className="border-b border-[#d8cec9] py-6">
+                <div className="border-b border-[#d8cec9] py-4">
                   <button
                     type="button"
                     aria-expanded={openSections.has("category")}
@@ -329,7 +329,7 @@ export default function GiftGrid({ gifts }: { gifts: GiftRecord[] }) {
                   </button>
 
                   {openSections.has("category") && (
-                    <div className="mt-5 grid grid-cols-2 border-l border-t border-[#d8cec9]">
+                    <div className="mt-4 grid grid-cols-2 border-l border-t border-[#d8cec9]">
                       {categories.map((category) => {
                         const selected = selectedCategories.has(category);
 
@@ -339,7 +339,7 @@ export default function GiftGrid({ gifts }: { gifts: GiftRecord[] }) {
                             type="button"
                             aria-pressed={selected}
                             onClick={() => toggleCategory(category)}
-                            className={`min-h-14 border-b border-r border-[#d8cec9] px-4 py-3 text-left text-sm transition-colors ${
+                            className={`min-h-12 border-b border-r border-[#d8cec9] px-3 py-2 text-left text-sm transition-colors ${
                               selected
                                 ? "bg-[#302b29] text-white"
                                 : "bg-white text-[#302b29] hover:bg-[#f5f1ef]"
@@ -354,11 +354,11 @@ export default function GiftGrid({ gifts }: { gifts: GiftRecord[] }) {
                 </div>
               </div>
 
-              <footer className="grid gap-3 border-t border-[#d8cec9] bg-white p-6 sm:px-10">
+              <footer className="grid gap-2 border-t border-[#d8cec9] bg-white p-5 sm:px-8">
                 <button
                   type="button"
                   onClick={() => setFiltersOpen(false)}
-                  className="bg-[#171717] px-6 py-4 text-sm font-semibold uppercase tracking-[0.05em] text-white hover:bg-[#302b29]"
+                  className="bg-[#171717] px-5 py-3 text-sm font-semibold uppercase tracking-[0.05em] text-white hover:bg-[#302b29]"
                 >
                   Show gifts ({sortedGifts.length})
                 </button>
@@ -371,7 +371,7 @@ export default function GiftGrid({ gifts }: { gifts: GiftRecord[] }) {
                     setMaxPrice(MAX_PRICE);
                     setSelectedCategories(new Set());
                   }}
-                  className="border border-[#d8cec9] px-6 py-4 text-sm font-semibold uppercase tracking-[0.05em] text-[#756b67] disabled:cursor-not-allowed disabled:opacity-40"
+                  className="border border-[#d8cec9] px-5 py-3 text-sm font-semibold uppercase tracking-[0.05em] text-[#756b67] disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   Clear filters
                 </button>
@@ -381,7 +381,7 @@ export default function GiftGrid({ gifts }: { gifts: GiftRecord[] }) {
         )}
       </div>
 
-      <div className="grid gap-7 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {sortedGifts.map((gift) => {
           const {
             Brand,
@@ -404,7 +404,7 @@ export default function GiftGrid({ gifts }: { gifts: GiftRecord[] }) {
           return (
             <article
               key={gift.id}
-              className="overflow-hidden rounded-[28px] bg-white shadow-sm ring-1 ring-black/5"
+              className="overflow-hidden rounded-[22px] bg-white shadow-sm ring-1 ring-black/5"
             >
               <div className="relative aspect-[4/3] overflow-hidden bg-[#eee8e5]">
                 {image && !imageFailed ? (
@@ -421,7 +421,7 @@ export default function GiftGrid({ gifts }: { gifts: GiftRecord[] }) {
                     <svg
                       aria-hidden="true"
                       viewBox="0 0 24 24"
-                      className="h-8 w-8"
+                      className="h-6 w-6"
                       fill="none"
                       stroke="currentColor"
                       strokeWidth="1.5"
@@ -435,8 +435,8 @@ export default function GiftGrid({ gifts }: { gifts: GiftRecord[] }) {
                 )}
               </div>
 
-              <div className="p-6">
-                <div className="mb-3 flex items-start justify-between gap-3">
+              <div className="p-5">
+                <div className="mb-2 flex items-start justify-between gap-2">
                   <div>
                     {Brand && (
                       <p className="text-xs uppercase tracking-[0.18em] text-[#a18e86]">
@@ -454,19 +454,19 @@ export default function GiftGrid({ gifts }: { gifts: GiftRecord[] }) {
                   </div>
 
                   {Featured && (
-                    <span className="whitespace-nowrap rounded-full bg-[#f6e7e4] px-3 py-1 text-xs font-medium text-[#97675e]">
+                    <span className="whitespace-nowrap rounded-full bg-[#f6e7e4] px-2.5 py-0.5 text-xs font-medium text-[#97675e]">
                       Featured
                     </span>
                   )}
                 </div>
 
                 {Description && (
-                  <p className="mb-5 text-sm leading-6 text-[#756b67]">
+                  <p className="mb-4 text-sm leading-5 text-[#756b67]">
                     {Description}
                   </p>
                 )}
 
-                <div className="mb-5 flex items-center justify-between gap-3">
+                <div className="mb-4 flex items-center justify-between gap-2">
                   <div>
                     {typeof Price === "number" && (
                       <p className="text-lg font-semibold">
@@ -482,7 +482,7 @@ export default function GiftGrid({ gifts }: { gifts: GiftRecord[] }) {
                   </div>
 
                   <span
-                    className={`rounded-full px-3 py-1.5 text-xs font-medium ${
+                    className={`rounded-full px-2.5 py-1 text-xs font-medium ${
                       available
                         ? "bg-[#e7f0e8] text-[#52705b]"
                         : "bg-[#eeeae8] text-[#837873]"
@@ -492,13 +492,13 @@ export default function GiftGrid({ gifts }: { gifts: GiftRecord[] }) {
                   </span>
                 </div>
 
-                <div className="flex gap-3">
+                <div className="flex gap-2">
                   {productUrl && (
                     <a
                       href={productUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="flex-1 rounded-full border border-[#d8cec9] px-4 py-3 text-center text-sm font-medium hover:bg-[#f8f3f1]"
+                      className="flex-1 rounded-full border border-[#d8cec9] px-3 py-2.5 text-center text-sm font-medium hover:bg-[#f8f3f1]"
                     >
                       View gift
                     </a>
@@ -507,7 +507,7 @@ export default function GiftGrid({ gifts }: { gifts: GiftRecord[] }) {
                   <button
                     type="button"
                     disabled={!available}
-                    className={`flex-1 rounded-full px-4 py-3 text-sm font-medium ${
+                    className={`flex-1 rounded-full px-3 py-2.5 text-sm font-medium ${
                       available
                         ? "bg-[#302b29] text-white hover:bg-[#514844]"
                         : "cursor-not-allowed bg-[#ebe7e5] text-[#9c918c]"
