@@ -82,7 +82,7 @@ async function getGifts() {
 
   const response = await fetch(
 
-    `https://api.airtable.com/v0/${baseId}/Gifts?${params.toString()}`,
+    `https://api.airtable.com/v0/${baseId}/tblzgy8G8TzSF0NA9?${params.toString()}`,
 
     {
 
