@@ -1,14 +1,13 @@
 import type { Metadata } from "next";
-import { DM_Serif_Display } from "next/font/google";
+import { Inter } from "next/font/google";
 import LanguageProvider from "./i18n/LanguageProvider";
 import LanguageSwitcher from "./i18n/LanguageSwitcher";
 import "./globals.css";
 
-const dmSerifDisplay = DM_Serif_Display({
-  variable: "--font-dm-serif-display",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
-  weight: "400",
-  style: "normal",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -24,7 +23,7 @@ export default function RootLayout({
   return (
     <html
       lang="es"
-      className={`${dmSerifDisplay.variable} h-full antialiased`}
+      className={`${inter.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <LanguageProvider>

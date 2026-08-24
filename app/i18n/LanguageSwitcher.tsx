@@ -18,7 +18,7 @@ export default function LanguageSwitcher() {
       aria-label={label}
       onClick={() => setLanguage(value)}
       className={`px-1 py-0.5 transition-colors ${
-        language === value ? "font-semibold text-[#352e2b]" : "text-[#9a8d86] hover:text-[#5d514c]"
+        language === value ? "font-medium text-[#352e2b]" : "font-normal text-[#9a8d86] hover:text-[#5d514c]"
       }`}
     >
       {value.toUpperCase()}

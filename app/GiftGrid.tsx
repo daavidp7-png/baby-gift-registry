@@ -214,7 +214,7 @@ export default function GiftGrid({
             aria-expanded={filtersOpen}
             aria-controls="gift-filters"
             onClick={() => setFiltersOpen((current) => !current)}
-            className="text-sm font-semibold uppercase tracking-[0.08em] text-[#302b29] underline-offset-8 hover:underline"
+            className="text-sm font-medium uppercase tracking-[0.08em] text-[#302b29] underline-offset-8 hover:underline"
           >
             {t.gifts.filters.open}
             {activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
@@ -240,7 +240,7 @@ export default function GiftGrid({
               <header className="flex items-center justify-between border-b border-[#d8cec9] px-5 py-4 sm:px-8">
                 <h2
                   id="filters-title"
-                  className="text-lg font-semibold uppercase tracking-[0.04em] text-[#171717]"
+                  className="text-lg font-medium uppercase tracking-[0.04em] text-[#171717]"
                 >
                   {t.gifts.filters.open}
                 </h2>
@@ -267,7 +267,7 @@ export default function GiftGrid({
                 <div className="border-b border-[#d8cec9] py-4">
                   <label
                     htmlFor="gift-sort"
-                    className="block text-base font-semibold uppercase"
+                    className="block text-base font-medium uppercase"
                   >
                     {t.gifts.filters.sortBy}
                   </label>
@@ -278,7 +278,7 @@ export default function GiftGrid({
                       onChange={(event) =>
                         setSort(event.target.value as SortOption)
                       }
-                      className="w-full appearance-none border border-[#d8cec9] bg-white px-3 py-2.5 pr-10 text-sm text-[#302b29] outline-none focus:border-[#302b29]"
+                      className="w-full appearance-none border border-[#d8cec9] bg-white px-3 py-2.5 pr-10 text-sm font-normal text-[#302b29] outline-none focus:border-[#302b29]"
                     >
                       <option value="recommended">{t.gifts.filters.recommended}</option>
                       <option value="price-asc">{t.gifts.filters.priceLowHigh}</option>
@@ -302,7 +302,7 @@ export default function GiftGrid({
                     type="button"
                     aria-expanded={openSections.has("price")}
                     onClick={() => toggleSection("price")}
-                    className="flex w-full items-center justify-between py-1 text-left text-base font-semibold uppercase"
+                    className="flex w-full items-center justify-between py-1 text-left text-base font-medium uppercase"
                   >
                     <span>{t.gifts.filters.price}</span>
                     <span aria-hidden="true" className="text-xl font-light">
@@ -367,7 +367,7 @@ export default function GiftGrid({
                     type="button"
                     aria-expanded={openSections.has("category")}
                     onClick={() => toggleSection("category")}
-                    className="flex w-full items-center justify-between py-1 text-left text-base font-semibold uppercase"
+                    className="flex w-full items-center justify-between py-1 text-left text-base font-medium uppercase"
                   >
                     <span>{t.gifts.filters.category}</span>
                     <span aria-hidden="true" className="text-xl font-light">
@@ -386,7 +386,7 @@ export default function GiftGrid({
                             type="button"
                             aria-pressed={selected}
                             onClick={() => toggleCategory(category)}
-                            className={`min-h-12 border-b border-r border-[#d8cec9] px-3 py-2 text-left text-sm transition-colors ${
+                            className={`min-h-12 border-b border-r border-[#d8cec9] px-3 py-2 text-left text-sm font-normal transition-colors ${
                               selected
                                 ? "bg-[#302b29] text-white"
                                 : "bg-white text-[#302b29] hover:bg-[#f5f1ef]"
@@ -405,7 +405,7 @@ export default function GiftGrid({
                 <button
                   type="button"
                   onClick={() => setFiltersOpen(false)}
-                  className="bg-[#171717] px-5 py-3 text-sm font-semibold uppercase tracking-[0.05em] text-white hover:bg-[#302b29]"
+                  className="bg-[#171717] px-5 py-3 text-sm font-medium uppercase tracking-[0.05em] text-white hover:bg-[#302b29]"
                 >
                   {t.gifts.filters.show} ({sortedGifts.length})
                 </button>
@@ -418,7 +418,7 @@ export default function GiftGrid({
                     setMaxPrice(MAX_PRICE);
                     setSelectedCategories(new Set());
                   }}
-                  className="border border-[#d8cec9] px-5 py-3 text-sm font-semibold uppercase tracking-[0.05em] text-[#756b67] disabled:cursor-not-allowed disabled:opacity-40"
+                  className="border border-[#d8cec9] px-5 py-3 text-sm font-medium uppercase tracking-[0.05em] text-[#756b67] disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   {t.gifts.filters.clear}
                 </button>
