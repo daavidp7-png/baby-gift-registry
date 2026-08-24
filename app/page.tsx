@@ -16,7 +16,7 @@ export default function HomePage() {
           ♡
         </span>
 
-        <h1 className="font-serif text-5xl leading-tight tracking-[-0.03em] sm:text-6xl md:text-7xl">
+        <h1 className="text-5xl leading-tight tracking-[-0.03em] sm:text-6xl md:text-7xl">
           {t.home.title}
         </h1>
 
