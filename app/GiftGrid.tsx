@@ -1,8 +1,10 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useLanguage } from "./i18n/LanguageProvider";
+import { useFavorites } from "./lib/favorites";
 import ReservationModal from "./ReservationModal";
 
 type AirtableAttachment = {
@@ -38,8 +40,15 @@ const priceFormatter = new Intl.NumberFormat("de-CH", {
   maximumFractionDigits: 0,
 });
 
-export default function GiftGrid({ gifts }: { gifts: GiftRecord[] }) {
+export default function GiftGrid({
+  gifts,
+  favoritesOnly = false,
+}: {
+  gifts: GiftRecord[];
+  favoritesOnly?: boolean;
+}) {
   const { language, t } = useLanguage();
+  const { favoriteIds, toggleFavorite } = useFavorites();
   const [sort, setSort] = useState<SortOption>("recommended");
   const [minPrice, setMinPrice] = useState(0);
   const [maxPrice, setMaxPrice] = useState(MAX_PRICE);
@@ -61,6 +70,14 @@ export default function GiftGrid({ gifts }: { gifts: GiftRecord[] }) {
     () => new Set()
   );
 
+  const displayedGifts = useMemo(
+    () =>
+      favoritesOnly
+        ? gifts.filter((gift) => favoriteIds.has(gift.id))
+        : gifts,
+    [favoriteIds, favoritesOnly, gifts]
+  );
+
   const markImageAsFailed = (giftId: string) => {
     setFailedImages((current) => {
       const next = new Set(current);
@@ -73,12 +90,12 @@ export default function GiftGrid({ gifts }: { gifts: GiftRecord[] }) {
     () =>
       Array.from(
         new Set(
-          gifts
+          displayedGifts
             .map((gift) => gift.fields.Category)
             .filter((category): category is string => Boolean(category))
         )
       ).sort((a, b) => a.localeCompare(b, language)),
-    [gifts, language]
+    [displayedGifts, language]
   );
 
   const translatedStatus = (status: string) => {
@@ -133,7 +150,7 @@ export default function GiftGrid({ gifts }: { gifts: GiftRecord[] }) {
   }, [filtersOpen]);
 
   const sortedGifts = useMemo(() => {
-    const items = gifts.filter((gift) => {
+    const items = displayedGifts.filter((gift) => {
       const priceMatches =
         gift.fields.Price == null ||
         (gift.fields.Price >= minPrice && gift.fields.Price <= maxPrice);
@@ -166,13 +183,27 @@ export default function GiftGrid({ gifts }: { gifts: GiftRecord[] }) {
         (a.fields["Display Order"] ?? 9999) -
         (b.fields["Display Order"] ?? 9999)
     );
-  }, [gifts, maxPrice, minPrice, selectedCategories, sort]);
+  }, [displayedGifts, maxPrice, minPrice, selectedCategories, sort]);
 
   const priceFilterIsActive = minPrice > 0 || maxPrice < MAX_PRICE;
   const activeFilterCount =
     (priceFilterIsActive ? 1 : 0) +
     selectedCategories.size +
     (sort !== "recommended" ? 1 : 0);
+
+  if (favoritesOnly && displayedGifts.length === 0) {
+    return (
+      <div className="rounded-[20px] bg-white p-8 text-center shadow-sm ring-1 ring-black/5">
+        <p className="text-base leading-6 text-[#756b67]">{t.favorites.empty}</p>
+        <Link
+          href="/gifts"
+          className="mt-6 inline-flex rounded-full bg-[#302b29] px-5 py-2.5 text-sm font-medium text-white hover:bg-[#514844]"
+        >
+          {t.favorites.returnToGifts}
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -426,6 +457,29 @@ export default function GiftGrid({ gifts }: { gifts: GiftRecord[] }) {
               className="overflow-hidden rounded-[22px] bg-white shadow-sm ring-1 ring-black/5"
             >
               <div className="relative aspect-[4/3] overflow-hidden bg-[#eee8e5]">
+                <button
+                  type="button"
+                  aria-label={
+                    favoriteIds.has(gift.id)
+                      ? t.favorites.remove
+                      : t.favorites.add
+                  }
+                  aria-pressed={favoriteIds.has(gift.id)}
+                  onClick={() => toggleFavorite(gift.id)}
+                  className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-white/70 bg-white/90 text-[#9d615d] shadow-sm backdrop-blur transition-transform hover:scale-105"
+                >
+                  <svg
+                    aria-hidden="true"
+                    viewBox="0 0 24 24"
+                    className="h-4.5 w-4.5"
+                    fill={favoriteIds.has(gift.id) ? "currentColor" : "none"}
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                  >
+                    <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z" />
+                  </svg>
+                </button>
+
                 {image && !imageFailed ? (
                   <Image
                     src={image}

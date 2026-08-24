@@ -34,6 +34,16 @@ export const translations = {
       reserve: "Reservar",
       statuses: { available: "Disponible", reserved: "Reservado" },
     },
+    favorites: {
+      eyebrow: "Lista de regalos",
+      title: "Mis favoritos",
+      description: "Los regalos que has guardado para volver a verlos fácilmente.",
+      navigation: "Ver favoritos",
+      add: "Añadir a favoritos",
+      remove: "Quitar de favoritos",
+      empty: "Todavía no has guardado ningún regalo como favorito.",
+      returnToGifts: "Volver a la lista de regalos",
+    },
     reservation: {
       eyebrow: "Reserva de regalo",
       close: "Cerrar formulario de reserva",
@@ -89,6 +99,16 @@ export const translations = {
       view: "View gift",
       reserve: "Reserve",
       statuses: { available: "Available", reserved: "Reserved" },
+    },
+    favorites: {
+      eyebrow: "Baby Registry",
+      title: "My favorites",
+      description: "The gifts you have saved so you can easily find them again.",
+      navigation: "View favorites",
+      add: "Add to favorites",
+      remove: "Remove from favorites",
+      empty: "You have not saved any favorite gifts yet.",
+      returnToGifts: "Return to the gift list",
     },
     reservation: {
       eyebrow: "Gift reservation",
