@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
+import { useLanguage } from "./i18n/LanguageProvider";
 import ReservationModal from "./ReservationModal";
 
 type AirtableAttachment = {
@@ -38,6 +39,7 @@ const priceFormatter = new Intl.NumberFormat("de-CH", {
 });
 
 export default function GiftGrid({ gifts }: { gifts: GiftRecord[] }) {
+  const { language, t } = useLanguage();
   const [sort, setSort] = useState<SortOption>("recommended");
   const [minPrice, setMinPrice] = useState(0);
   const [maxPrice, setMaxPrice] = useState(MAX_PRICE);
@@ -75,9 +77,15 @@ export default function GiftGrid({ gifts }: { gifts: GiftRecord[] }) {
             .map((gift) => gift.fields.Category)
             .filter((category): category is string => Boolean(category))
         )
-      ).sort((a, b) => a.localeCompare(b, "es")),
-    [gifts]
+      ).sort((a, b) => a.localeCompare(b, language)),
+    [gifts, language]
   );
+
+  const translatedStatus = (status: string) => {
+    if (status === "Available") return t.gifts.statuses.available;
+    if (status === "Reserved") return t.gifts.statuses.reserved;
+    return status;
+  };
 
   const toggleCategory = (category: string) => {
     setSelectedCategories((current) => {
@@ -177,7 +185,7 @@ export default function GiftGrid({ gifts }: { gifts: GiftRecord[] }) {
             onClick={() => setFiltersOpen((current) => !current)}
             className="text-sm font-semibold uppercase tracking-[0.08em] text-[#302b29] underline-offset-8 hover:underline"
           >
-            Filter &amp; Sort
+            {t.gifts.filters.open}
             {activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
           </button>
         </div>
@@ -187,7 +195,7 @@ export default function GiftGrid({ gifts }: { gifts: GiftRecord[] }) {
             <button
               type="button"
               className="absolute inset-0 cursor-default bg-black/35"
-              aria-label="Close filters"
+              aria-label={t.gifts.filters.close}
               onClick={() => setFiltersOpen(false)}
             />
 
@@ -203,12 +211,12 @@ export default function GiftGrid({ gifts }: { gifts: GiftRecord[] }) {
                   id="filters-title"
                   className="text-lg font-semibold uppercase tracking-[0.04em] text-[#171717]"
                 >
-                  Filter &amp; Sort
+                  {t.gifts.filters.open}
                 </h2>
                 <button
                   type="button"
                   onClick={() => setFiltersOpen(false)}
-                  aria-label="Close filters"
+                  aria-label={t.gifts.filters.close}
                   className="p-1.5 text-[#302b29]"
                 >
                   <svg
@@ -230,7 +238,7 @@ export default function GiftGrid({ gifts }: { gifts: GiftRecord[] }) {
                     htmlFor="gift-sort"
                     className="block text-base font-semibold uppercase"
                   >
-                    Sort by
+                    {t.gifts.filters.sortBy}
                   </label>
                   <div className="relative mt-3">
                     <select
@@ -241,9 +249,9 @@ export default function GiftGrid({ gifts }: { gifts: GiftRecord[] }) {
                       }
                       className="w-full appearance-none border border-[#d8cec9] bg-white px-3 py-2.5 pr-10 text-sm text-[#302b29] outline-none focus:border-[#302b29]"
                     >
-                      <option value="recommended">Recommended</option>
-                      <option value="price-asc">Price: low to high</option>
-                      <option value="price-desc">Price: high to low</option>
+                      <option value="recommended">{t.gifts.filters.recommended}</option>
+                      <option value="price-asc">{t.gifts.filters.priceLowHigh}</option>
+                      <option value="price-desc">{t.gifts.filters.priceHighLow}</option>
                     </select>
                     <svg
                       aria-hidden="true"
@@ -265,7 +273,7 @@ export default function GiftGrid({ gifts }: { gifts: GiftRecord[] }) {
                     onClick={() => toggleSection("price")}
                     className="flex w-full items-center justify-between py-1 text-left text-base font-semibold uppercase"
                   >
-                    <span>Price</span>
+                    <span>{t.gifts.filters.price}</span>
                     <span aria-hidden="true" className="text-xl font-light">
                       {openSections.has("price") ? "−" : "+"}
                     </span>
@@ -296,7 +304,7 @@ export default function GiftGrid({ gifts }: { gifts: GiftRecord[] }) {
                               )
                             )
                           }
-                          aria-label="Minimum price in Swiss francs"
+                          aria-label={t.gifts.filters.minimumPrice}
                         />
                         <input
                           type="range"
@@ -312,7 +320,7 @@ export default function GiftGrid({ gifts }: { gifts: GiftRecord[] }) {
                               )
                             )
                           }
-                          aria-label="Maximum price in Swiss francs"
+                          aria-label={t.gifts.filters.maximumPrice}
                         />
                       </div>
                       <p className="mt-3 text-base tabular-nums text-[#302b29]">
@@ -330,7 +338,7 @@ export default function GiftGrid({ gifts }: { gifts: GiftRecord[] }) {
                     onClick={() => toggleSection("category")}
                     className="flex w-full items-center justify-between py-1 text-left text-base font-semibold uppercase"
                   >
-                    <span>Category</span>
+                    <span>{t.gifts.filters.category}</span>
                     <span aria-hidden="true" className="text-xl font-light">
                       {openSections.has("category") ? "−" : "+"}
                     </span>
@@ -368,7 +376,7 @@ export default function GiftGrid({ gifts }: { gifts: GiftRecord[] }) {
                   onClick={() => setFiltersOpen(false)}
                   className="bg-[#171717] px-5 py-3 text-sm font-semibold uppercase tracking-[0.05em] text-white hover:bg-[#302b29]"
                 >
-                  Show gifts ({sortedGifts.length})
+                  {t.gifts.filters.show} ({sortedGifts.length})
                 </button>
                 <button
                   type="button"
@@ -381,7 +389,7 @@ export default function GiftGrid({ gifts }: { gifts: GiftRecord[] }) {
                   }}
                   className="border border-[#d8cec9] px-5 py-3 text-sm font-semibold uppercase tracking-[0.05em] text-[#756b67] disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                  Clear filters
+                  {t.gifts.filters.clear}
                 </button>
               </footer>
             </aside>
@@ -402,7 +410,7 @@ export default function GiftGrid({ gifts }: { gifts: GiftRecord[] }) {
             Featured,
           } = gift.fields;
 
-          const name = gift.fields["Gift Name"] ?? "Gift";
+          const name = gift.fields["Gift Name"] ?? t.gifts.fallbackName;
           const productUrl = gift.fields["Product URL"];
           const image = giftImages?.[0]?.url;
           const imageFailed = failedImages.has(gift.id);
@@ -441,7 +449,7 @@ export default function GiftGrid({ gifts }: { gifts: GiftRecord[] }) {
                       <path d="m5 16 4.5-4.5 3.25 3.25 2-2L19 17" />
                       <circle cx="15.5" cy="9" r="1.25" />
                     </svg>
-                    <span>Image unavailable</span>
+                    <span>{t.gifts.imageUnavailable}</span>
                   </div>
                 )}
               </div>
@@ -466,7 +474,7 @@ export default function GiftGrid({ gifts }: { gifts: GiftRecord[] }) {
 
                   {Featured && (
                     <span className="whitespace-nowrap rounded-full bg-[#f6e7e4] px-2.5 py-0.5 text-xs font-medium text-[#97675e]">
-                      Featured
+                      {t.gifts.featured}
                     </span>
                   )}
                 </div>
@@ -499,7 +507,7 @@ export default function GiftGrid({ gifts }: { gifts: GiftRecord[] }) {
                         : "bg-[#eeeae8] text-[#837873]"
                     }`}
                   >
-                    {currentStatus}
+                    {translatedStatus(currentStatus)}
                   </span>
                 </div>
 
@@ -511,7 +519,7 @@ export default function GiftGrid({ gifts }: { gifts: GiftRecord[] }) {
                       rel="noreferrer"
                       className="flex-1 rounded-full border border-[#d8cec9] px-3 py-2.5 text-center text-sm font-medium hover:bg-[#f8f3f1]"
                     >
-                      View gift
+                      {t.gifts.view}
                     </a>
                   )}
 
@@ -527,7 +535,7 @@ export default function GiftGrid({ gifts }: { gifts: GiftRecord[] }) {
                         : "cursor-not-allowed bg-[#ebe7e5] text-[#9c918c]"
                     }`}
                   >
-                    {available ? "Reserve" : currentStatus}
+                    {available ? t.gifts.reserve : translatedStatus(currentStatus)}
                   </button>
                 </div>
               </div>

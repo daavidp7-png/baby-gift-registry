@@ -33,10 +33,12 @@ export async function GET() {
     );
   }
 
+  const tables = data.tables as Array<{ id: string; name: string }> | undefined;
+
   return Response.json({
     ok: true,
     baseId,
-    tables: data.tables?.map((table: any) => ({
+    tables: tables?.map((table) => ({
       id: table.id,
       name: table.name,
     })),

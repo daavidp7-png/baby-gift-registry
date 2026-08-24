@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useRef, useState } from "react";
+import { useLanguage } from "./i18n/LanguageProvider";
 
 type ReservationModalProps = {
   giftId: string;
@@ -17,6 +18,7 @@ export default function ReservationModal({
   onClose,
   onReserved,
 }: ReservationModalProps) {
+  const { language, t } = useLanguage();
   const [submitState, setSubmitState] = useState<SubmitState>("idle");
   const [error, setError] = useState("");
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -53,12 +55,13 @@ export default function ReservationModal({
           name: formData.get("name"),
           email: formData.get("email"),
           message: formData.get("message"),
+          language,
         }),
       });
       const data = (await response.json()) as { error?: string };
 
       if (!response.ok) {
-        throw new Error(data.error ?? "Could not reserve this gift.");
+        throw new Error(data.error ?? t.reservation.errors.generic);
       }
 
       setSubmitState("success");
@@ -67,7 +70,7 @@ export default function ReservationModal({
       setError(
         submissionError instanceof Error
           ? submissionError.message
-          : "Could not reserve this gift."
+          : t.reservation.errors.generic
       );
       setSubmitState("error");
     }
@@ -79,7 +82,7 @@ export default function ReservationModal({
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
       <button
         type="button"
-        aria-label="Close reservation form"
+        aria-label={t.reservation.close}
         disabled={!canClose}
         onClick={onClose}
         className="absolute inset-0 bg-black/40"
@@ -94,7 +97,7 @@ export default function ReservationModal({
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-xs font-medium uppercase tracking-[0.15em] text-[#a18479]">
-              Gift reservation
+              {t.reservation.eyebrow}
             </p>
             <h2
               id="reservation-title"
@@ -105,7 +108,7 @@ export default function ReservationModal({
           </div>
           <button
             type="button"
-            aria-label="Close reservation form"
+            aria-label={t.reservation.close}
             disabled={!canClose}
             onClick={onClose}
             className="p-1 text-[#756b67] disabled:opacity-40"
@@ -125,22 +128,22 @@ export default function ReservationModal({
 
         {submitState === "success" ? (
           <div className="pt-6">
-            <p className="font-semibold text-[#52705b]">Gift reserved!</p>
+            <p className="font-semibold text-[#52705b]">{t.reservation.successTitle}</p>
             <p className="mt-2 leading-5 text-[#756b67]">
-              Thank you. We have saved your reservation.
+              {t.reservation.successMessage}
             </p>
             <button
               type="button"
               onClick={onClose}
               className="mt-6 w-full rounded-full bg-[#302b29] px-4 py-2.5 font-medium text-white"
             >
-              Done
+              {t.reservation.done}
             </button>
           </div>
         ) : (
           <form onSubmit={submitReservation} className="mt-5 grid gap-4">
             <label className="grid gap-1.5">
-              <span className="font-medium text-[#514844]">Your name</span>
+              <span className="font-medium text-[#514844]">{t.reservation.name}</span>
               <input
                 ref={nameInputRef}
                 name="name"
@@ -154,7 +157,7 @@ export default function ReservationModal({
             </label>
 
             <label className="grid gap-1.5">
-              <span className="font-medium text-[#514844]">Email</span>
+              <span className="font-medium text-[#514844]">{t.reservation.email}</span>
               <input
                 name="email"
                 type="email"
@@ -167,7 +170,7 @@ export default function ReservationModal({
 
             <label className="grid gap-1.5">
               <span className="font-medium text-[#514844]">
-                Message <span className="font-normal text-[#958985]">(optional)</span>
+                {t.reservation.message} <span className="font-normal text-[#958985]">{t.reservation.optional}</span>
               </span>
               <textarea
                 name="message"
@@ -190,14 +193,14 @@ export default function ReservationModal({
                 onClick={onClose}
                 className="flex-1 rounded-full border border-[#d8cec9] px-4 py-2.5 font-medium text-[#514844] disabled:opacity-40"
               >
-                Cancel
+                {t.reservation.cancel}
               </button>
               <button
                 type="submit"
                 disabled={submitState === "submitting"}
                 className="flex-1 rounded-full bg-[#302b29] px-4 py-2.5 font-medium text-white disabled:cursor-wait disabled:opacity-60"
               >
-                {submitState === "submitting" ? "Reserving…" : "Reserve gift"}
+                {submitState === "submitting" ? t.reservation.submitting : t.reservation.submit}
               </button>
             </div>
           </form>

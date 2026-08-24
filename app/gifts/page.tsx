@@ -1,4 +1,5 @@
-import GiftGrid, { type GiftRecord } from "../GiftGrid";
+import GiftRegistryContent from "../GiftRegistryContent";
+import { type GiftRecord } from "../GiftGrid";
 import { createImageProxyUrl } from "../lib/imageProxy";
 
 export const dynamic = "force-dynamic";
@@ -418,31 +419,7 @@ export default async function GiftsPage() {
 
   return (
     <main className="min-h-screen bg-[#faf7f5] text-[#302b29]">
-      <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-        <header className="mx-auto mb-10 max-w-3xl text-center">
-          <p className="mb-2 text-xs font-medium uppercase tracking-[0.3em] text-[#a18479]">
-            Baby Registry
-          </p>
-
-          <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl md:text-6xl">
-            Our baby girl&apos;s gift list
-          </h1>
-
-          <p className="mx-auto mt-4 max-w-2xl text-base leading-6 text-[#756b67] sm:text-lg">
-            We are so excited to welcome our little girl. If you would like to
-            give her something, here are some of the things we have chosen for
-            her.
-          </p>
-        </header>
-
-        {gifts.length === 0 ? (
-          <div className="rounded-[20px] bg-white p-8 text-center shadow-sm">
-            <p>No gifts are available yet.</p>
-          </div>
-        ) : (
-          <GiftGrid gifts={gifts} />
-        )}
-      </section>
+      <GiftRegistryContent gifts={gifts} />
     </main>
   );
 }

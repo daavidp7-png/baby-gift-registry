@@ -1,10 +1,12 @@
 import { randomUUID } from "node:crypto";
+import { translations, type Language } from "../../i18n/translations";
 
 type ReservationInput = {
   giftId: string;
   name: string;
   email: string;
   message: string;
+  language: Language;
 };
 
 type AirtableGift = {
@@ -43,6 +45,7 @@ function parseInput(value: unknown): ReservationInput | null {
     typeof input.email === "string" ? input.email.trim().toLowerCase() : "";
   const message =
     typeof input.message === "string" ? input.message.trim() : "";
+  const language: Language = input.language === "en" ? "en" : "es";
 
   if (
     !/^rec[a-zA-Z0-9]{14}$/.test(giftId) ||
@@ -55,7 +58,7 @@ function parseInput(value: unknown): ReservationInput | null {
     return null;
   }
 
-  return { giftId, name, email, message };
+  return { giftId, name, email, message, language };
 }
 
 async function airtableRequest(
@@ -77,23 +80,33 @@ async function airtableRequest(
 
 export async function POST(request: Request) {
   let input: ReservationInput | null = null;
+  let language: Language = "es";
 
   try {
-    input = parseInput(await request.json());
+    const body: unknown = await request.json();
+    if (body && typeof body === "object" && !Array.isArray(body) && "language" in body) {
+      language = body.language === "en" ? "en" : "es";
+    }
+    input = parseInput(body);
   } catch {
-    return Response.json({ error: "Invalid request." }, { status: 400 });
+    return Response.json(
+      { error: translations[language].reservation.errors.invalidRequest },
+      { status: 400 }
+    );
   }
+
+  const errors = translations[language].reservation.errors;
 
   if (!input) {
     return Response.json(
-      { error: "Please check the form fields and try again." },
+      { error: errors.invalidFields },
       { status: 400 }
     );
   }
 
   if (reservationsInProgress.has(input.giftId)) {
     return Response.json(
-      { error: "This gift is currently being reserved. Please try again." },
+      { error: errors.inProgress },
       { status: 409 }
     );
   }
@@ -114,7 +127,7 @@ export async function POST(request: Request) {
 
     if (gift.fields?.Status !== "Available" || gift.fields.Active === false) {
       return Response.json(
-        { error: "This gift is no longer available." },
+        { error: errors.unavailable },
         { status: 409 }
       );
     }
@@ -170,7 +183,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Gift reservation error:", error);
     return Response.json(
-      { error: "Reservations are temporarily unavailable. Please try again." },
+      { error: errors.temporary },
       { status: 502 }
     );
   } finally {

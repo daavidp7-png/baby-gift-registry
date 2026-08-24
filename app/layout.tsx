@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import LanguageProvider from "./i18n/LanguageProvider";
+import LanguageSwitcher from "./i18n/LanguageSwitcher";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -13,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Welcome, little one",
-  description: "A little space created with love while we wait for you.",
+  title: "Bienvenida, pequeña",
+  description: "Un pequeño espacio creado con amor mientras esperamos tu llegada.",
 };
 
 export default function RootLayout({
@@ -24,10 +26,15 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
+      lang="es"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <LanguageProvider>
+          <LanguageSwitcher />
+          {children}
+        </LanguageProvider>
+      </body>
     </html>
   );
 }
