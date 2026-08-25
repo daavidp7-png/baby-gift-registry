@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { translations, type Language } from "../../i18n/translations";
 import { airtableRequest } from "../../lib/airtable";
+import { tryLockGifts, unlockGifts } from "../../lib/giftMutationLock";
 
 type ReservationInput = {
   giftId: string;
@@ -22,8 +23,6 @@ type AirtableGift = {
 type AirtableRecord = {
   id: string;
 };
-
-const reservationsInProgress = new Set<string>();
 
 function parseInput(value: unknown): ReservationInput | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
@@ -77,14 +76,13 @@ export async function POST(request: Request) {
     );
   }
 
-  if (reservationsInProgress.has(input.giftId)) {
+  if (!tryLockGifts([input.giftId])) {
     return Response.json(
       { error: errors.inProgress },
       { status: 409 }
     );
   }
 
-  reservationsInProgress.add(input.giftId);
   let reservationRecordId: string | null = null;
 
   try {
@@ -161,6 +159,6 @@ export async function POST(request: Request) {
       { status: 502 }
     );
   } finally {
-    reservationsInProgress.delete(input.giftId);
+    unlockGifts([input.giftId]);
   }
 }

@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { translations, type Language } from "../../i18n/translations";
 import { airtableRequest } from "../../lib/airtable";
+import { tryLockGifts, unlockGifts } from "../../lib/giftMutationLock";
 
 type PurchasableStatus = "Available" | "Reserved";
 type CurrentStatus = PurchasableStatus | "Purchased";
@@ -39,7 +40,6 @@ type ReservationList = {
   offset?: string;
 };
 
-const purchasesInProgress = new Set<string>();
 const giftIdPattern = /^rec[a-zA-Z0-9]{14}$/;
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -187,14 +187,12 @@ export async function POST(request: Request) {
     return Response.json({ error: errors.invalidFields }, { status: 400 });
   }
 
-  if (purchasesInProgress.has(input.giftId)) {
+  if (!tryLockGifts([input.giftId])) {
     return Response.json(
       { error: errors.inProgress, code: "in_progress" },
       { status: 409 }
     );
   }
-
-  purchasesInProgress.add(input.giftId);
 
   try {
     const gift = await getGift(input.giftId);
@@ -339,6 +337,6 @@ export async function POST(request: Request) {
     console.error("Gift purchase error:", error);
     return Response.json({ error: errors.temporary }, { status: 502 });
   } finally {
-    purchasesInProgress.delete(input.giftId);
+    unlockGifts([input.giftId]);
   }
 }

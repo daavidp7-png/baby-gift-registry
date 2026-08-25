@@ -4,6 +4,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import BulkPurchaseModal, {
+  type BulkPurchaseResultItem,
+} from "./BulkPurchaseModal";
 import { useLanguage } from "./i18n/LanguageProvider";
 import { useFavorites } from "./lib/favorites";
 import PurchaseModal from "./PurchaseModal";
@@ -72,6 +75,12 @@ export default function GiftGrid({
     name: string;
     status: "Available" | "Reserved";
   } | null>(null);
+  const [bulkSelectedGiftIds, setBulkSelectedGiftIds] = useState<Set<string>>(
+    () => new Set()
+  );
+  const [bulkPurchaseGiftIds, setBulkPurchaseGiftIds] = useState<
+    string[] | null
+  >(null);
   const [giftStatusOverrides, setGiftStatusOverrides] = useState<
     Map<string, GiftStatus>
   >(() => new Map());
@@ -118,12 +127,91 @@ export default function GiftGrid({
     return status;
   };
 
+  const getGiftStatus = (gift: GiftRecord): GiftStatus => {
+    const status = gift.fields.Status;
+    const airtableStatus: GiftStatus =
+      status === "Reserved" || status === "Purchased"
+        ? status
+        : "Available";
+
+    return giftStatusOverrides.get(gift.id) ?? airtableStatus;
+  };
+
   const updateGiftStatus = (giftId: string, status: GiftStatus) => {
     setGiftStatusOverrides((current) => {
       const next = new Map(current);
       next.set(giftId, status);
       return next;
     });
+  };
+
+  const toggleBulkGift = (giftId: string) => {
+    setBulkSelectedGiftIds((current) => {
+      const next = new Set(current);
+
+      if (next.has(giftId)) {
+        next.delete(giftId);
+      } else {
+        next.add(giftId);
+      }
+
+      return next;
+    });
+  };
+
+  const selectAllPurchasableFavorites = () => {
+    setBulkSelectedGiftIds((current) => {
+      const next = new Set(current);
+
+      displayedGifts.forEach((gift) => {
+        if (getGiftStatus(gift) !== "Purchased") next.add(gift.id);
+      });
+
+      return next;
+    });
+  };
+
+  const toggleGiftFavorite = (giftId: string) => {
+    if (favoritesOnly && favoriteIds.has(giftId)) {
+      setBulkSelectedGiftIds((current) => {
+        const next = new Set(current);
+        next.delete(giftId);
+        return next;
+      });
+    }
+
+    toggleFavorite(giftId);
+  };
+
+  const handleBulkPurchaseComplete = (items: BulkPurchaseResultItem[]) => {
+    const purchasedIds = new Set(
+      items
+        .filter((item) => item.outcome === "purchased")
+        .map((item) => item.giftId)
+    );
+
+    items.forEach((item) => {
+      if (item.status) updateGiftStatus(item.giftId, item.status);
+    });
+
+    setBulkSelectedGiftIds((current) => {
+      const next = new Set(current);
+      purchasedIds.forEach((giftId) => next.delete(giftId));
+      return next;
+    });
+
+    const purchasedCount = purchasedIds.size;
+    const message =
+      purchasedCount === 0
+        ? t.bulkPurchase.noEligible
+        : purchasedCount === 1
+        ? t.bulkPurchase.purchasedOne
+        : t.bulkPurchase.purchasedMany.replace(
+            "{count}",
+            String(purchasedCount)
+          );
+    setFeedback({ message, tone: purchasedCount > 0 ? "success" : "error" });
+    router.refresh();
   };
 
   const toggleCategory = (category: string) => {
@@ -243,7 +331,21 @@ export default function GiftGrid({
       )}
 
       <div className="mb-6">
-        <div className="flex justify-end py-2">
+        <div
+          className={`flex flex-wrap items-center gap-x-4 gap-y-3 py-2 ${
+            favoritesOnly ? "justify-between" : "justify-end"
+          }`}
+        >
+          {favoritesOnly && (
+            <Link
+              href="/gifts"
+              className="inline-flex items-center gap-1.5 text-xs font-medium uppercase tracking-[0.08em] text-[#302b29] underline-offset-8 hover:underline sm:text-sm"
+            >
+              <span aria-hidden="true">←</span>
+              {t.favorites.returnToGifts}
+            </Link>
+          )}
+
           <button
             type="button"
             aria-expanded={filtersOpen}
@@ -255,6 +357,29 @@ export default function GiftGrid({
             {activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
           </button>
         </div>
+
+        {favoritesOnly && (
+          <div className="mt-2 flex flex-wrap items-center justify-end gap-x-4 gap-y-3 border-t border-[#e7dfdb] pt-4">
+            <button
+              type="button"
+              onClick={selectAllPurchasableFavorites}
+              className="text-xs font-medium uppercase tracking-[0.08em] text-[#756b67] underline-offset-8 hover:underline sm:text-sm"
+            >
+              {t.bulkPurchase.selectAllPurchasable}
+            </button>
+            <button
+              type="button"
+              disabled={bulkSelectedGiftIds.size === 0}
+              onClick={() => {
+                setFeedback(null);
+                setBulkPurchaseGiftIds(Array.from(bulkSelectedGiftIds));
+              }}
+              className="rounded-full border border-[#302b29] px-4 py-2 text-xs font-medium uppercase tracking-[0.06em] text-[#302b29] hover:bg-[#f3ece9] disabled:cursor-not-allowed disabled:opacity-40 sm:text-sm"
+            >
+              {t.bulkPurchase.purchaseSelected} ({bulkSelectedGiftIds.size})
+            </button>
+          </div>
+        )}
 
         {filtersOpen && (
           <div className="fixed inset-0 z-50">
@@ -472,7 +597,6 @@ export default function GiftGrid({
             Image: giftImages,
             Price,
             Priority,
-            Status = "Available",
             Featured,
           } = gift.fields;
 
@@ -481,22 +605,49 @@ export default function GiftGrid({
           const image = giftImages?.[0]?.url;
           const imageFailed = failedImages.has(gift.id);
 
-          const airtableStatus: GiftStatus =
-            Status === "Reserved" || Status === "Purchased"
-              ? Status
-              : "Available";
-          const currentStatus =
-            giftStatusOverrides.get(gift.id) ?? airtableStatus;
+          const currentStatus = getGiftStatus(gift);
           const available = currentStatus === "Available";
           const reserved = currentStatus === "Reserved";
           const purchased = currentStatus === "Purchased";
+          const bulkSelected = bulkSelectedGiftIds.has(gift.id);
 
           return (
             <article
               key={gift.id}
-              className="overflow-hidden rounded-[22px] bg-white shadow-sm ring-1 ring-black/5"
+              className={`overflow-hidden rounded-[22px] bg-white shadow-sm ring-1 transition-shadow ${
+                bulkSelected ? "ring-[#a18479]" : "ring-black/5"
+              }`}
             >
               <div className="relative aspect-[4/3] overflow-hidden bg-[#eee8e5]">
+                {favoritesOnly && !purchased && (
+                  <button
+                    type="button"
+                    aria-label={`${t.bulkPurchase.selectGift}: ${name}`}
+                    aria-pressed={bulkSelected}
+                    onClick={() => toggleBulkGift(gift.id)}
+                    className={`absolute left-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full border shadow-sm backdrop-blur transition-colors ${
+                      bulkSelected
+                        ? "border-[#302b29] bg-[#302b29] text-white"
+                        : "border-white/70 bg-white/90 text-[#756b67]"
+                    }`}
+                  >
+                    <svg
+                      aria-hidden="true"
+                      viewBox="0 0 24 24"
+                      className="h-4 w-4"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                    >
+                      {bulkSelected ? (
+                        <path d="m5 12 4 4L19 6" />
+                      ) : (
+                        <circle cx="12" cy="12" r="8" />
+                      )}
+                    </svg>
+                  </button>
+                )}
+
                 <button
                   type="button"
                   aria-label={
@@ -505,7 +656,7 @@ export default function GiftGrid({
                       : t.favorites.add
                   }
                   aria-pressed={favoriteIds.has(gift.id)}
-                  onClick={() => toggleFavorite(gift.id)}
+                  onClick={() => toggleGiftFavorite(gift.id)}
                   className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-white/70 bg-white/90 text-[#9d615d] shadow-sm backdrop-blur transition-transform hover:scale-105"
                 >
                   <svg
@@ -676,6 +827,11 @@ export default function GiftGrid({
           onClose={() => setSelectedPurchase(null)}
           onPurchased={(message) => {
             updateGiftStatus(selectedPurchase.id, "Purchased");
+            setBulkSelectedGiftIds((current) => {
+              const next = new Set(current);
+              next.delete(selectedPurchase.id);
+              return next;
+            });
             setFeedback({ message, tone: "success" });
             setSelectedPurchase(null);
             router.refresh();
@@ -686,6 +842,14 @@ export default function GiftGrid({
             setSelectedPurchase(null);
             router.refresh();
           }}
+        />
+      )}
+
+      {bulkPurchaseGiftIds && (
+        <BulkPurchaseModal
+          giftIds={bulkPurchaseGiftIds}
+          onClose={() => setBulkPurchaseGiftIds(null)}
+          onComplete={handleBulkPurchaseComplete}
         />
       )}
     </>
