@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { translations, type Language } from "../../i18n/translations";
+import { airtableRequest } from "../../lib/airtable";
 
 type ReservationInput = {
   giftId: string;
@@ -23,17 +24,6 @@ type AirtableRecord = {
 };
 
 const reservationsInProgress = new Set<string>();
-
-function getAirtableConfig() {
-  const token = process.env.AIRTABLE_TOKEN;
-  const baseId = process.env.AIRTABLE_BASE_ID;
-
-  if (!token || !baseId) {
-    throw new Error("Airtable is not configured");
-  }
-
-  return { token, baseId };
-}
 
 function parseInput(value: unknown): ReservationInput | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
@@ -59,23 +49,6 @@ function parseInput(value: unknown): ReservationInput | null {
   }
 
   return { giftId, name, email, message, language };
-}
-
-async function airtableRequest(
-  path: string,
-  init: RequestInit = {}
-): Promise<Response> {
-  const { token, baseId } = getAirtableConfig();
-
-  return fetch(`https://api.airtable.com/v0/${baseId}/${path}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-      ...init.headers,
-    },
-    cache: "no-store",
-  });
 }
 
 export async function POST(request: Request) {
@@ -142,6 +115,7 @@ export async function POST(request: Request) {
       "Reservation ID": reservationId,
       "Reservation Status": "Reserved",
       "Reserved Date": new Date().toISOString(),
+      "Gift Record ID": input.giftId,
     };
 
     if (input.message) {

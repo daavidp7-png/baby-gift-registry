@@ -1,4 +1,5 @@
 import { type GiftRecord } from "../GiftGrid";
+import { airtableRequest } from "./airtable";
 import { createImageProxyUrl } from "./imageProxy";
 
 async function getImageFromProductUrl(
@@ -323,27 +324,7 @@ async function getImageFromProductUrl(
 }
 
 export async function getGifts(): Promise<GiftRecord[]> {
-  const token = process.env.AIRTABLE_TOKEN;
-  const baseId = process.env.AIRTABLE_BASE_ID;
-
-  if (!token) {
-    throw new Error("AIRTABLE_TOKEN is missing");
-  }
-
-  if (!baseId) {
-    throw new Error("AIRTABLE_BASE_ID is missing");
-  }
-
-  const url = `https://api.airtable.com/v0/${baseId}/${encodeURIComponent(
-    "Gifts"
-  )}`;
-
-  const response = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-    cache: "no-store",
-  });
+  const response = await airtableRequest(encodeURIComponent("Gifts"));
 
   const data = await response.json();
 

@@ -32,7 +32,11 @@ export const translations = {
       featured: "Destacado",
       view: "Ver regalo",
       reserve: "Reservar",
-      statuses: { available: "Disponible", reserved: "Reservado" },
+      statuses: {
+        available: "Disponible",
+        reserved: "Reservado",
+        purchased: "Comprado",
+      },
     },
     favorites: {
       eyebrow: "Lista de regalos",
@@ -64,6 +68,36 @@ export const translations = {
         inProgress: "Este regalo se está reservando en este momento. Inténtalo de nuevo.",
         unavailable: "Este regalo ya no está disponible.",
         temporary: "Las reservas no están disponibles temporalmente. Inténtalo de nuevo.",
+      },
+    },
+    purchase: {
+      eyebrow: "Compra de regalo",
+      close: "Cerrar confirmación de compra",
+      markAsPurchased: "Marcar como comprado",
+      availableExplanation:
+        "Introduce tus datos para marcar este regalo como comprado.",
+      reservedExplanation:
+        "Introduce el correo electrónico utilizado para reservar este regalo.",
+      email: "Correo electrónico de la reserva",
+      cancel: "Cancelar",
+      confirm: "Confirmar compra",
+      submitting: "Marcando como comprado…",
+      successDirect: "El regalo se ha marcado como comprado.",
+      successReserved:
+        "La reserva y el regalo se han marcado como comprados.",
+      errors: {
+        generic: "No se ha podido marcar este regalo como comprado.",
+        invalidRequest: "Solicitud no válida.",
+        invalidFields: "Revisa los datos e inténtalo de nuevo.",
+        incorrectEmail:
+          "Este correo no coincide con el utilizado para reservar este regalo.",
+        alreadyPurchased: "Este regalo ya ha sido comprado.",
+        stale:
+          "El estado de este regalo ha cambiado. Hemos actualizado la lista.",
+        inProgress:
+          "Este regalo se está actualizando en este momento. Inténtalo de nuevo.",
+        temporary:
+          "No se puede actualizar el regalo en este momento. Inténtalo de nuevo.",
       },
     },
   },
@@ -98,7 +132,11 @@ export const translations = {
       featured: "Featured",
       view: "View gift",
       reserve: "Reserve",
-      statuses: { available: "Available", reserved: "Reserved" },
+      statuses: {
+        available: "Available",
+        reserved: "Reserved",
+        purchased: "Purchased",
+      },
     },
     favorites: {
       eyebrow: "Baby Registry",
@@ -130,6 +168,35 @@ export const translations = {
         inProgress: "This gift is currently being reserved. Please try again.",
         unavailable: "This gift is no longer available.",
         temporary: "Reservations are temporarily unavailable. Please try again.",
+      },
+    },
+    purchase: {
+      eyebrow: "Gift purchase",
+      close: "Close purchase confirmation",
+      markAsPurchased: "Mark as purchased",
+      availableExplanation:
+        "Enter your details to mark this gift as purchased.",
+      reservedExplanation:
+        "Enter the email address used to reserve this gift.",
+      email: "Reservation email",
+      cancel: "Cancel",
+      confirm: "Confirm purchase",
+      submitting: "Marking as purchased…",
+      successDirect: "The gift has been marked as purchased.",
+      successReserved:
+        "The reservation and gift have been marked as purchased.",
+      errors: {
+        generic: "Could not mark this gift as purchased.",
+        invalidRequest: "Invalid request.",
+        invalidFields: "Please check the details and try again.",
+        incorrectEmail:
+          "This email does not match the email used to reserve this gift.",
+        alreadyPurchased: "This gift has already been purchased.",
+        stale: "This gift’s status changed. We have refreshed the list.",
+        inProgress:
+          "This gift is currently being updated. Please try again.",
+        temporary:
+          "The gift cannot be updated right now. Please try again.",
       },
     },
   },

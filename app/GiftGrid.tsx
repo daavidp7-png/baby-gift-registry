@@ -2,9 +2,11 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useLanguage } from "./i18n/LanguageProvider";
 import { useFavorites } from "./lib/favorites";
+import PurchaseModal from "./PurchaseModal";
 import ReservationModal from "./ReservationModal";
 
 type AirtableAttachment = {
@@ -33,6 +35,7 @@ export type GiftRecord = {
 
 type SortOption = "recommended" | "price-asc" | "price-desc";
 type FilterSection = "category" | "price";
+type GiftStatus = "Available" | "Reserved" | "Purchased";
 
 const MAX_PRICE = 3000;
 
@@ -47,6 +50,7 @@ export default function GiftGrid({
   gifts: GiftRecord[];
   favoritesOnly?: boolean;
 }) {
+  const router = useRouter();
   const { language, t } = useLanguage();
   const { favoriteIds, toggleFavorite } = useFavorites();
   const [sort, setSort] = useState<SortOption>("recommended");
@@ -63,9 +67,18 @@ export default function GiftGrid({
     id: string;
     name: string;
   } | null>(null);
-  const [reservedGiftIds, setReservedGiftIds] = useState<Set<string>>(
-    () => new Set()
-  );
+  const [selectedPurchase, setSelectedPurchase] = useState<{
+    id: string;
+    name: string;
+    status: "Available" | "Reserved";
+  } | null>(null);
+  const [giftStatusOverrides, setGiftStatusOverrides] = useState<
+    Map<string, GiftStatus>
+  >(() => new Map());
+  const [feedback, setFeedback] = useState<{
+    message: string;
+    tone: "success" | "error";
+  } | null>(null);
   const [failedImages, setFailedImages] = useState<Set<string>>(
     () => new Set()
   );
@@ -101,7 +114,16 @@ export default function GiftGrid({
   const translatedStatus = (status: string) => {
     if (status === "Available") return t.gifts.statuses.available;
     if (status === "Reserved") return t.gifts.statuses.reserved;
+    if (status === "Purchased") return t.gifts.statuses.purchased;
     return status;
+  };
+
+  const updateGiftStatus = (giftId: string, status: GiftStatus) => {
+    setGiftStatusOverrides((current) => {
+      const next = new Map(current);
+      next.set(giftId, status);
+      return next;
+    });
   };
 
   const toggleCategory = (category: string) => {
@@ -207,6 +229,19 @@ export default function GiftGrid({
 
   return (
     <>
+      {feedback && (
+        <div
+          role={feedback.tone === "error" ? "alert" : "status"}
+          className={`mb-6 rounded-[16px] px-4 py-3 text-center text-sm font-medium ${
+            feedback.tone === "success"
+              ? "bg-[#e7f0e8] text-[#52705b]"
+              : "bg-[#f6e7e4] text-[#8a514b]"
+          }`}
+        >
+          {feedback.message}
+        </div>
+      )}
+
       <div className="mb-6">
         <div className="flex justify-end py-2">
           <button
@@ -446,10 +481,15 @@ export default function GiftGrid({
           const image = giftImages?.[0]?.url;
           const imageFailed = failedImages.has(gift.id);
 
-          const currentStatus = reservedGiftIds.has(gift.id)
-            ? "Reserved"
-            : Status;
+          const airtableStatus: GiftStatus =
+            Status === "Reserved" || Status === "Purchased"
+              ? Status
+              : "Available";
+          const currentStatus =
+            giftStatusOverrides.get(gift.id) ?? airtableStatus;
           const available = currentStatus === "Available";
+          const reserved = currentStatus === "Reserved";
+          const purchased = currentStatus === "Purchased";
 
           return (
             <article
@@ -558,39 +598,57 @@ export default function GiftGrid({
                     className={`rounded-full px-2.5 py-1 text-xs font-medium ${
                       available
                         ? "bg-[#e7f0e8] text-[#52705b]"
-                        : "bg-[#eeeae8] text-[#837873]"
+                        : purchased
+                          ? "bg-[#f6e7e4] text-[#8a514b]"
+                          : "bg-[#eeeae8] text-[#837873]"
                     }`}
                   >
                     {translatedStatus(currentStatus)}
                   </span>
                 </div>
 
-                <div className="flex gap-2">
-                  {productUrl && (
-                    <a
-                      href={productUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="flex-1 rounded-full border border-[#d8cec9] px-3 py-2.5 text-center text-sm font-medium hover:bg-[#f8f3f1]"
-                    >
-                      {t.gifts.view}
-                    </a>
-                  )}
+                <div className="grid gap-2">
+                  <div className="flex gap-2">
+                    {productUrl && (
+                      <a
+                        href={productUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex-1 rounded-full border border-[#d8cec9] px-3 py-2.5 text-center text-sm font-medium hover:bg-[#f8f3f1]"
+                      >
+                        {t.gifts.view}
+                      </a>
+                    )}
 
-                  <button
-                    type="button"
-                    disabled={!available}
-                    onClick={() =>
-                      setSelectedGift({ id: gift.id, name })
-                    }
-                    className={`flex-1 rounded-full px-3 py-2.5 text-sm font-medium ${
-                      available
-                        ? "bg-[#302b29] text-white hover:bg-[#514844]"
-                        : "cursor-not-allowed bg-[#ebe7e5] text-[#9c918c]"
-                    }`}
-                  >
-                    {available ? t.gifts.reserve : translatedStatus(currentStatus)}
-                  </button>
+                    {available && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSelectedGift({ id: gift.id, name })
+                        }
+                        className="flex-1 rounded-full bg-[#302b29] px-3 py-2.5 text-sm font-medium text-white hover:bg-[#514844]"
+                      >
+                        {t.gifts.reserve}
+                      </button>
+                    )}
+                  </div>
+
+                  {(available || reserved) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFeedback(null);
+                        setSelectedPurchase({
+                          id: gift.id,
+                          name,
+                          status: currentStatus,
+                        });
+                      }}
+                      className="w-full rounded-full border border-[#d8cec9] px-3 py-2.5 text-sm font-medium text-[#514844] hover:bg-[#f8f3f1]"
+                    >
+                      {t.purchase.markAsPurchased}
+                    </button>
+                  )}
                 </div>
               </div>
             </article>
@@ -603,13 +661,31 @@ export default function GiftGrid({
           giftId={selectedGift.id}
           giftName={selectedGift.name}
           onClose={() => setSelectedGift(null)}
-          onReserved={() =>
-            setReservedGiftIds((current) => {
-              const next = new Set(current);
-              next.add(selectedGift.id);
-              return next;
-            })
-          }
+          onReserved={() => {
+            updateGiftStatus(selectedGift.id, "Reserved");
+            router.refresh();
+          }}
+        />
+      )}
+
+      {selectedPurchase && (
+        <PurchaseModal
+          giftId={selectedPurchase.id}
+          giftName={selectedPurchase.name}
+          expectedStatus={selectedPurchase.status}
+          onClose={() => setSelectedPurchase(null)}
+          onPurchased={(message) => {
+            updateGiftStatus(selectedPurchase.id, "Purchased");
+            setFeedback({ message, tone: "success" });
+            setSelectedPurchase(null);
+            router.refresh();
+          }}
+          onStatusChanged={(status, message) => {
+            if (status) updateGiftStatus(selectedPurchase.id, status);
+            setFeedback({ message, tone: "error" });
+            setSelectedPurchase(null);
+            router.refresh();
+          }}
         />
       )}
     </>
