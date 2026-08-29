@@ -110,6 +110,8 @@ export const translations = {
       selected: "seleccionados",
       intro:
         "Introduce tus datos una sola vez. Comprobaremos qué regalos pueden incluirse antes de realizar ningún cambio.",
+      selectedTotal: "Total seleccionado",
+      purchaseTotal: "Total a comprar",
       reviewAction: "Revisar compra",
       reviewing: "Comprobando regalos…",
       reviewTitle: "Revisión de compra",
@@ -253,6 +255,8 @@ export const translations = {
       selected: "selected",
       intro:
         "Enter your details once. We will check which gifts can be included before making any changes.",
+      selectedTotal: "Selected total",
+      purchaseTotal: "Purchase total",
       reviewAction: "Review purchase",
       reviewing: "Checking gifts…",
       reviewTitle: "Review purchase",

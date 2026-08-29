@@ -100,6 +100,20 @@ export default function GiftGrid({
     [favoriteIds, favoritesOnly, gifts]
   );
 
+  const bulkPurchaseSelectedTotal = useMemo(() => {
+    if (!bulkPurchaseGiftIds) return 0;
+
+    const selectedIds = new Set(bulkPurchaseGiftIds);
+    return gifts.reduce((total, gift) => {
+      if (!selectedIds.has(gift.id)) return total;
+      const status = giftStatusOverrides.get(gift.id) ?? gift.fields.Status;
+      if (status === "Purchased") return total;
+
+      const price = gift.fields.Price;
+      return total + (typeof price === "number" && Number.isFinite(price) ? price : 0);
+    }, 0);
+  }, [bulkPurchaseGiftIds, giftStatusOverrides, gifts]);
+
   const markImageAsFailed = (giftId: string) => {
     setFailedImages((current) => {
       const next = new Set(current);
@@ -848,6 +862,7 @@ export default function GiftGrid({
       {bulkPurchaseGiftIds && (
         <BulkPurchaseModal
           giftIds={bulkPurchaseGiftIds}
+          selectedTotal={bulkPurchaseSelectedTotal}
           onClose={() => setBulkPurchaseGiftIds(null)}
           onComplete={handleBulkPurchaseComplete}
         />

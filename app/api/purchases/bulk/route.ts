@@ -29,6 +29,7 @@ type AirtableGift = {
   id: string;
   fields?: {
     "Gift Name"?: string;
+    Price?: number;
     Status?: string;
     Active?: boolean;
   };
@@ -53,6 +54,7 @@ type ReservationList = {
 type ReviewItem = {
   giftId: string;
   name: string;
+  price: number;
   classification: ReviewClassification;
   eligible: boolean;
   status?: PublicGiftStatus;
@@ -69,6 +71,11 @@ type ConfirmItem = {
 const giftIdPattern = /^rec[a-zA-Z0-9]{14}$/;
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_BULK_GIFTS = 50;
+
+function giftPrice(gift: AirtableGift) {
+  const price = gift.fields?.Price;
+  return typeof price === "number" && Number.isFinite(price) ? price : 0;
+}
 
 function parseInput(value: unknown): BulkInput | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
@@ -216,18 +223,19 @@ async function findActiveReservation(
 async function classifyGift(giftId: string, email: string): Promise<ReviewItem> {
   const gift = await getGift(giftId);
   const name = gift.fields?.["Gift Name"] ?? "Gift";
+  const price = giftPrice(gift);
   const status = publicStatus(gift.fields?.Status);
 
   if (gift.fields?.Active === false || !status) {
-    return { giftId, name, classification: "changed", eligible: false, status };
+    return { giftId, name, price, classification: "changed", eligible: false, status };
   }
 
   if (status === "Available") {
-    return { giftId, name, classification: "available", eligible: true, status };
+    return { giftId, name, price, classification: "available", eligible: true, status };
   }
 
   if (status === "Purchased") {
-    return { giftId, name, classification: "purchased", eligible: false, status };
+    return { giftId, name, price, classification: "purchased", eligible: false, status };
   }
 
   const reservation = await findActiveReservation(giftId);
@@ -237,6 +245,7 @@ async function classifyGift(giftId: string, email: string): Promise<ReviewItem> 
     return {
       giftId,
       name,
+      price,
       classification: "reserved_by_you",
       eligible: true,
       status,
@@ -246,6 +255,7 @@ async function classifyGift(giftId: string, email: string): Promise<ReviewItem> 
   return {
     giftId,
     name,
+    price,
     classification: "reserved_by_other",
     eligible: false,
     status,
@@ -493,15 +503,23 @@ export async function POST(request: Request) {
           items.push({
             giftId,
             name: "Gift",
+            price: 0,
             classification: "changed",
             eligible: false,
           });
         }
       }
 
+      const eligibleItems = items.filter((item) => item.eligible);
+
       return Response.json({
         items,
-        eligibleCount: items.filter((item) => item.eligible).length,
+        eligibleCount: eligibleItems.length,
+        selectedTotal: items.reduce((total, item) => total + item.price, 0),
+        eligibleTotal: eligibleItems.reduce(
+          (total, item) => total + item.price,
+          0
+        ),
       });
     } catch (error) {
       console.error("Bulk purchase review error:", error);

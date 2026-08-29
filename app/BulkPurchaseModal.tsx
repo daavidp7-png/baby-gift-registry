@@ -16,6 +16,7 @@ type ReviewClassification =
 type ReviewItem = {
   giftId: string;
   name: string;
+  price: number;
   classification: ReviewClassification;
   eligible: boolean;
   status?: PublicGiftStatus;
@@ -39,6 +40,7 @@ type Step = "form" | "reviewing" | "review" | "processing" | "result";
 
 type BulkPurchaseModalProps = {
   giftIds: string[];
+  selectedTotal: number;
   onClose: () => void;
   onComplete: (items: BulkPurchaseResultItem[]) => void;
 };
@@ -47,8 +49,16 @@ function replaceCount(template: string, count: number) {
   return template.replace("{count}", String(count));
 }
 
+const chfFormatter = new Intl.NumberFormat("de-CH", {
+  style: "currency",
+  currency: "CHF",
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
 export default function BulkPurchaseModal({
   giftIds,
+  selectedTotal,
   onClose,
   onComplete,
 }: BulkPurchaseModalProps) {
@@ -56,6 +66,8 @@ export default function BulkPurchaseModal({
   const [step, setStep] = useState<Step>("form");
   const [contact, setContact] = useState<ContactDetails | null>(null);
   const [reviewItems, setReviewItems] = useState<ReviewItem[]>([]);
+  const [reviewSelectedTotal, setReviewSelectedTotal] = useState(0);
+  const [eligibleTotal, setEligibleTotal] = useState(0);
   const [resultItems, setResultItems] = useState<BulkPurchaseResultItem[]>([]);
   const [error, setError] = useState("");
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -93,6 +105,8 @@ export default function BulkPurchaseModal({
     const data = (await response.json()) as {
       error?: string;
       items?: ReviewItem[] | BulkPurchaseResultItem[];
+      selectedTotal?: number;
+      eligibleTotal?: number;
     };
 
     if (!response.ok) {
@@ -120,6 +134,8 @@ export default function BulkPurchaseModal({
       const data = await request("review", details);
       setContact(details);
       setReviewItems((data.items ?? []) as ReviewItem[]);
+      setReviewSelectedTotal(data.selectedTotal ?? 0);
+      setEligibleTotal(data.eligibleTotal ?? 0);
       setStep("review");
     } catch (reviewError) {
       setError(
@@ -190,6 +206,13 @@ export default function BulkPurchaseModal({
           <form onSubmit={reviewPurchase} className="mt-5 grid gap-4">
             <p className="leading-5 text-[#756b67]">{t.bulkPurchase.intro}</p>
 
+            <div className="rounded-xl bg-[#faf7f5] px-4 py-3">
+              <span className="text-[#756b67]">{t.bulkPurchase.selectedTotal}</span>
+              <strong className="ml-2 font-semibold text-[#302b29]">
+                {chfFormatter.format(selectedTotal)}
+              </strong>
+            </div>
+
             <GiftContactFields
               nameInputRef={nameInputRef}
               labels={t.reservation}
@@ -233,6 +256,17 @@ export default function BulkPurchaseModal({
                 ? t.bulkPurchase.eligibleOne
                 : replaceCount(t.bulkPurchase.eligibleMany, eligibleCount)}
             </p>
+
+            <div className="mt-4 rounded-xl bg-[#faf7f5] px-4 py-3">
+              {Math.abs(reviewSelectedTotal - eligibleTotal) > 0.005 && (
+                <p className="text-sm text-[#8f837d]">
+                  {t.bulkPurchase.selectedTotal}: {chfFormatter.format(reviewSelectedTotal)}
+                </p>
+              )}
+              <p className="font-semibold text-[#302b29]">
+                {t.bulkPurchase.purchaseTotal}: {chfFormatter.format(eligibleTotal)}
+              </p>
+            </div>
 
             <ul className="mt-4 grid gap-2">
               {reviewItems.map((item) => (
