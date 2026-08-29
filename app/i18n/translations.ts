@@ -106,6 +106,7 @@ export const translations = {
       close: "Cerrar compra de regalos seleccionados",
       purchaseSelected: "Comprar seleccionados",
       selectAllPurchasable: "Seleccionar todos los comprables",
+      deselectAll: "Deseleccionar todos",
       selectGift: "Seleccionar regalo",
       selected: "seleccionados",
       intro:
@@ -251,6 +252,7 @@ export const translations = {
       close: "Close selected gifts purchase",
       purchaseSelected: "Purchase selected",
       selectAllPurchasable: "Select all purchasable",
+      deselectAll: "Deselect all",
       selectGift: "Select gift",
       selected: "selected",
       intro:

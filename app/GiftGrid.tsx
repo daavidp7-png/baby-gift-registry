@@ -173,13 +173,22 @@ export default function GiftGrid({
     });
   };
 
-  const selectAllPurchasableFavorites = () => {
+  const purchasableFavoriteGiftIds = displayedGifts
+    .filter((gift) => getGiftStatus(gift) !== "Purchased")
+    .map((gift) => gift.id);
+  const allPurchasableFavoritesSelected =
+    purchasableFavoriteGiftIds.length > 0 &&
+    purchasableFavoriteGiftIds.every((giftId) =>
+      bulkSelectedGiftIds.has(giftId)
+    );
+
+  const toggleAllPurchasableFavorites = () => {
     setBulkSelectedGiftIds((current) => {
+      if (allPurchasableFavoritesSelected) return new Set();
+
       const next = new Set(current);
 
-      displayedGifts.forEach((gift) => {
-        if (getGiftStatus(gift) !== "Purchased") next.add(gift.id);
-      });
+      purchasableFavoriteGiftIds.forEach((giftId) => next.add(giftId));
 
       return next;
     });
@@ -376,10 +385,12 @@ export default function GiftGrid({
           <div className="mt-2 flex flex-wrap items-center justify-end gap-x-4 gap-y-3 border-t border-[#e7dfdb] pt-4">
             <button
               type="button"
-              onClick={selectAllPurchasableFavorites}
+              onClick={toggleAllPurchasableFavorites}
               className="text-xs font-medium uppercase tracking-[0.08em] text-[#756b67] underline-offset-8 hover:underline sm:text-sm"
             >
-              {t.bulkPurchase.selectAllPurchasable}
+              {allPurchasableFavoritesSelected
+                ? t.bulkPurchase.deselectAll
+                : t.bulkPurchase.selectAllPurchasable}
             </button>
             <button
               type="button"
