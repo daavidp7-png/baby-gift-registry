@@ -31,6 +31,17 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+.landing-enter-link {
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .landing-enter-link:hover {
+    transform: translateY(-0.125rem);
+    background-color: #514641;
+  }
+}
+
 /* Keep the existing type scale, reduced by exactly 2px. */
 .text-xs {
   font-size: 10px;

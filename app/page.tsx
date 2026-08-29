@@ -26,7 +26,7 @@ export default function HomePage() {
 
         <Link
           href="/gifts"
-          className="mt-10 rounded-full bg-[#352e2b] px-9 py-3.5 text-sm font-medium tracking-wide text-[#fffaf6] shadow-sm transition duration-200 hover:-translate-y-0.5 hover:bg-[#514641] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#8f6d62]"
+          className="landing-enter-link pointer-events-auto relative z-10 mt-10 touch-manipulation rounded-full bg-[#352e2b] px-9 py-3.5 text-sm font-medium tracking-wide text-[#fffaf6] shadow-sm transition duration-200 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#8f6d62]"
         >
           {t.home.enter}
         </Link>
