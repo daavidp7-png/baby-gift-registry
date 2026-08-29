@@ -46,6 +46,13 @@ const priceFormatter = new Intl.NumberFormat("de-CH", {
   maximumFractionDigits: 0,
 });
 
+const selectedTotalFormatter = new Intl.NumberFormat("de-CH", {
+  style: "currency",
+  currency: "CHF",
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
 export default function GiftGrid({
   gifts,
   favoritesOnly = false,
@@ -113,6 +120,22 @@ export default function GiftGrid({
       return total + (typeof price === "number" && Number.isFinite(price) ? price : 0);
     }, 0);
   }, [bulkPurchaseGiftIds, giftStatusOverrides, gifts]);
+
+  const liveSelectedTotal = useMemo(
+    () =>
+      displayedGifts.reduce((total, gift) => {
+        if (!bulkSelectedGiftIds.has(gift.id)) return total;
+        const status = giftStatusOverrides.get(gift.id) ?? gift.fields.Status;
+        if (status === "Purchased") return total;
+
+        const price = gift.fields.Price;
+        return (
+          total +
+          (typeof price === "number" && Number.isFinite(price) ? price : 0)
+        );
+      }, 0),
+    [bulkSelectedGiftIds, displayedGifts, giftStatusOverrides]
+  );
 
   const markImageAsFailed = (giftId: string) => {
     setFailedImages((current) => {
@@ -382,27 +405,36 @@ export default function GiftGrid({
         </div>
 
         {favoritesOnly && (
-          <div className="mt-2 flex flex-wrap items-center justify-end gap-x-4 gap-y-3 border-t border-[#e7dfdb] pt-4">
-            <button
-              type="button"
-              onClick={toggleAllPurchasableFavorites}
-              className="text-xs font-medium uppercase tracking-[0.08em] text-[#756b67] underline-offset-8 hover:underline sm:text-sm"
-            >
-              {allPurchasableFavoritesSelected
-                ? t.bulkPurchase.deselectAll
-                : t.bulkPurchase.selectAllPurchasable}
-            </button>
-            <button
-              type="button"
-              disabled={bulkSelectedGiftIds.size === 0}
-              onClick={() => {
-                setFeedback(null);
-                setBulkPurchaseGiftIds(Array.from(bulkSelectedGiftIds));
-              }}
-              className="rounded-full border border-[#302b29] px-4 py-2 text-xs font-medium uppercase tracking-[0.06em] text-[#302b29] hover:bg-[#f3ece9] disabled:cursor-not-allowed disabled:opacity-40 sm:text-sm"
-            >
-              {t.bulkPurchase.purchaseSelected} ({bulkSelectedGiftIds.size})
-            </button>
+          <div className="mt-2 flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-t border-[#e7dfdb] pt-4">
+            <p className="text-sm text-[#756b67]">
+              {t.bulkPurchase.selectedTotal}:{" "}
+              <span className="font-medium text-[#302b29]">
+                {selectedTotalFormatter.format(liveSelectedTotal)}
+              </span>
+            </p>
+
+            <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-3">
+              <button
+                type="button"
+                onClick={toggleAllPurchasableFavorites}
+                className="text-xs font-medium uppercase tracking-[0.08em] text-[#756b67] underline-offset-8 hover:underline sm:text-sm"
+              >
+                {allPurchasableFavoritesSelected
+                  ? t.bulkPurchase.deselectAll
+                  : t.bulkPurchase.selectAllPurchasable}
+              </button>
+              <button
+                type="button"
+                disabled={bulkSelectedGiftIds.size === 0}
+                onClick={() => {
+                  setFeedback(null);
+                  setBulkPurchaseGiftIds(Array.from(bulkSelectedGiftIds));
+                }}
+                className="rounded-full border border-[#302b29] px-4 py-2 text-xs font-medium uppercase tracking-[0.06em] text-[#302b29] hover:bg-[#f3ece9] disabled:cursor-not-allowed disabled:opacity-40 sm:text-sm"
+              >
+                {t.bulkPurchase.purchaseSelected} ({bulkSelectedGiftIds.size})
+              </button>
+            </div>
           </div>
         )}
 
