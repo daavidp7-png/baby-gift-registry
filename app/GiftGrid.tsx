@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import BulkPurchaseModal, {
   type BulkPurchaseResultItem,
 } from "./BulkPurchaseModal";
@@ -95,6 +95,8 @@ export default function GiftGrid({
     message: string;
     tone: "success" | "error";
   } | null>(null);
+  const [favoriteNoticeVisible, setFavoriteNoticeVisible] = useState(false);
+  const hasShownFavoriteNotice = useRef(false);
   const [failedImages, setFailedImages] = useState<Set<string>>(
     () => new Set()
   );
@@ -218,6 +220,8 @@ export default function GiftGrid({
   };
 
   const toggleGiftFavorite = (giftId: string) => {
+    const addingFavorite = !favoriteIds.has(giftId);
+
     if (favoritesOnly && favoriteIds.has(giftId)) {
       setBulkSelectedGiftIds((current) => {
         const next = new Set(current);
@@ -227,6 +231,11 @@ export default function GiftGrid({
     }
 
     toggleFavorite(giftId);
+
+    if (!favoritesOnly && addingFavorite && !hasShownFavoriteNotice.current) {
+      hasShownFavoriteNotice.current = true;
+      setFavoriteNoticeVisible(true);
+    }
   };
 
   const handleBulkPurchaseComplete = (items: BulkPurchaseResultItem[]) => {
@@ -304,6 +313,13 @@ export default function GiftGrid({
       window.removeEventListener("keydown", closeOnEscape);
     };
   }, [filtersOpen]);
+
+  useEffect(() => {
+    if (!favoriteNoticeVisible) return;
+
+    const timeout = window.setTimeout(() => setFavoriteNoticeVisible(false), 4500);
+    return () => window.clearTimeout(timeout);
+  }, [favoriteNoticeVisible]);
 
   const sortedGifts = useMemo(() => {
     const items = displayedGifts.filter((gift) => {
@@ -645,6 +661,28 @@ export default function GiftGrid({
         )}
       </div>
 
+      {!favoritesOnly && (
+        <div className="mb-6 flex items-center gap-4 rounded-xl border border-[#eadfd9] bg-[#f7efea] px-5 py-4 text-sm shadow-sm sm:gap-5 sm:px-6">
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 24 24"
+            className="h-8 w-8 shrink-0 text-[#9a756d]"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+          >
+            <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z" />
+          </svg>
+          <p className="min-w-0 leading-6 text-[#514844]">
+            <span className="font-semibold text-[#302b29]">
+              {t.gifts.multiGiftHintTitle}
+            </span>
+            <br />
+            {t.gifts.multiGiftHintBody}
+          </p>
+        </div>
+      )}
+
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {sortedGifts.map((gift) => {
           const {
@@ -863,6 +901,46 @@ export default function GiftGrid({
           );
         })}
       </div>
+
+      {favoriteNoticeVisible && !favoritesOnly && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="pointer-events-none fixed bottom-5 left-1/2 z-40 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 sm:bottom-7"
+        >
+          <div className="pointer-events-auto flex items-start gap-3 rounded-xl border border-[#e5dfdc] bg-white px-4 py-4 text-left text-sm text-[#514844] shadow-lg">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#f3e9e4] text-[#a87870]">
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                className="h-5 w-5"
+                fill="currentColor"
+                stroke="currentColor"
+                strokeWidth="1.2"
+              >
+                <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z" />
+              </svg>
+            </span>
+            <p className="min-w-0 flex-1 leading-5">
+              <span className="font-semibold text-[#302b29]">
+                {t.favorites.addedNoticeTitle}
+              </span>
+              <br />
+              {t.favorites.addedNoticeBody}
+            </p>
+            <button
+              type="button"
+              aria-label={t.favorites.closeNotice}
+              onClick={() => setFavoriteNoticeVisible(false)}
+              className="-mr-1 -mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[#514844] transition-colors hover:bg-[#f7f1ee] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8f6d62]"
+            >
+              <span aria-hidden="true" className="text-xl font-light leading-none">
+                ×
+              </span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {selectedGift && (
         <ReservationModal

@@ -14,6 +14,9 @@ export const translations = {
       description: "Estamos muy ilusionados por dar la bienvenida a nuestra pequeña. Si te apetece regalarle algo, aquí encontrarás algunas de las cosas que hemos elegido para ella.",
       empty: "Todavía no hay regalos disponibles.",
       fallbackName: "Regalo",
+      multiGiftHintTitle: "¿Quieres reservar o comprar varios regalos?",
+      multiGiftHintBody:
+        "Marca tus favoritos con ♡ y podrás gestionarlos juntos desde Mis favoritos.",
       filters: {
         open: "Filtrar y ordenar",
         close: "Cerrar filtros",
@@ -46,6 +49,10 @@ export const translations = {
       add: "Añadir a favoritos",
       remove: "Quitar de favoritos",
       empty: "Todavía no has guardado ningún regalo como favorito.",
+      addedNoticeTitle: "Añadido a favoritos.",
+      addedNoticeBody:
+        "Puedes seleccionar varios regalos y comprarlos juntos desde Mis favoritos.",
+      closeNotice: "Cerrar aviso de favoritos",
       returnToGifts: "Volver a la lista de regalos",
     },
     reservation: {
@@ -161,6 +168,9 @@ export const translations = {
       description: "We are so excited to welcome our little girl. If you would like to give her something, here are some of the things we have chosen for her.",
       empty: "No gifts are available yet.",
       fallbackName: "Gift",
+      multiGiftHintTitle: "Want to reserve or purchase several gifts?",
+      multiGiftHintBody:
+        "Tap ♡ to save them and manage them together from My favorites.",
       filters: {
         open: "Filter & Sort",
         close: "Close filters",
@@ -193,6 +203,10 @@ export const translations = {
       add: "Add to favorites",
       remove: "Remove from favorites",
       empty: "You have not saved any favorite gifts yet.",
+      addedNoticeTitle: "Added to favorites.",
+      addedNoticeBody:
+        "You can select several gifts and purchase them together from My favorites.",
+      closeNotice: "Close favorites notification",
       returnToGifts: "Back to gift list",
     },
     reservation: {
