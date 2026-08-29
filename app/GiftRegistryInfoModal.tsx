@@ -54,7 +54,18 @@ export default function GiftRegistryInfoModal() {
           aria-hidden="true"
           className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#f3e9e4] text-xl text-[#9a756d]"
         >
-          ♡
+          <svg
+            viewBox="0 0 24 24"
+            className="h-6 w-6"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M4 10h16v10H4zM3 7h18v3H3zM12 7v13" />
+            <path d="M12 7H8.75A2.25 2.25 0 1 1 11 4.75V7ZM12 7h3.25A2.25 2.25 0 1 0 13 4.75V7Z" />
+          </svg>
         </span>
 
         <div className="mt-5 space-y-4 leading-6 text-[#514844]">
