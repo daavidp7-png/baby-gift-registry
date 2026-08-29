@@ -7,6 +7,7 @@ export const translations = {
       title: "Bienvenida, pequeña",
       description: "Un pequeño espacio creado con amor mientras esperamos tu llegada.",
       enter: "Entrar",
+      loading: "Cargando…",
     },
     gifts: {
       eyebrow: "Lista de regalos",
@@ -170,6 +171,7 @@ export const translations = {
       title: "Welcome, little one",
       description: "A little space created with love while we wait for you.",
       enter: "Enter",
+      loading: "Loading…",
     },
     gifts: {
       eyebrow: "Baby Registry",
