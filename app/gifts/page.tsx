@@ -1,3 +1,4 @@
+import BackToTopButton from "../BackToTopButton";
 import GiftRegistryContent from "../GiftRegistryContent";
 import { getGifts } from "../lib/gifts";
 
@@ -9,6 +10,7 @@ export default async function GiftsPage() {
   return (
     <main className="min-h-screen bg-[#faf7f5] text-[#302b29]">
       <GiftRegistryContent gifts={gifts} />
+      <BackToTopButton />
     </main>
   );
 }

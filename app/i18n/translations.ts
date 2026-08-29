@@ -18,6 +18,7 @@ export const translations = {
       multiGiftHintBody:
         "Marca tus favoritos con ♡ y podrás gestionarlos juntos desde Mis favoritos.",
       sectionNavigation: "Secciones de regalos",
+      backToTop: "Volver arriba",
       filters: {
         open: "Filtrar y ordenar",
         close: "Cerrar filtros",
@@ -180,6 +181,7 @@ export const translations = {
       multiGiftHintBody:
         "Tap ♡ to save them and manage them together from My favorites.",
       sectionNavigation: "Gift sections",
+      backToTop: "Back to top",
       filters: {
         open: "Filter & Sort",
         close: "Close filters",
