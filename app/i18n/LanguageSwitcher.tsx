@@ -10,6 +10,8 @@ export default function LanguageSwitcher() {
   const { language, setLanguage, t } = useLanguage();
   const { favoriteIds } = useFavorites();
   const pathname = usePathname();
+  const compactLanguageSelector =
+    pathname === "/gifts" || pathname === "/favorites";
 
   const option = (value: Language, label: string) => (
     <button
@@ -26,12 +28,37 @@ export default function LanguageSwitcher() {
   );
 
   return (
-    <header className="fixed right-5 top-5 z-40 flex items-center gap-2 sm:right-8 sm:top-7">
+    <>
+      <header
+        className={`relative z-30 flex h-14 shrink-0 items-start px-5 pt-5 sm:h-16 sm:px-8 sm:pt-7 ${
+          pathname === "/" ? "bg-[#f8f4ef]" : "bg-[#faf7f5]"
+        }`}
+      >
+        {compactLanguageSelector ? (
+          <button
+            type="button"
+            aria-label={
+              language === "es" ? t.language.english : t.language.spanish
+            }
+            onClick={() => setLanguage(language === "es" ? "en" : "es")}
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-[#ddcec6] bg-[#f8f4ef]/90 text-[10px] font-medium tracking-[0.08em] text-[#352e2b] shadow-sm backdrop-blur transition-colors hover:bg-[#f1e9e4]"
+          >
+            {language.toUpperCase()}
+          </button>
+        ) : (
+          <div role="group" aria-label={t.language.label} className="flex items-center rounded-full border border-[#ddcec6] bg-[#f8f4ef]/90 px-2.5 py-1.5 text-xs tracking-[0.12em] shadow-sm backdrop-blur">
+            {option("es", t.language.spanish)}
+            <span aria-hidden="true" className="mx-1 text-[#c8b9b2]">|</span>
+            {option("en", t.language.english)}
+          </div>
+        )}
+      </header>
+
       <Link
         href="/favorites"
         aria-label={t.favorites.navigation}
         aria-current={pathname === "/favorites" ? "page" : undefined}
-        className={`relative flex h-9 w-9 items-center justify-center rounded-full border border-[#ddcec6] bg-[#f8f4ef]/90 shadow-sm backdrop-blur transition-colors hover:bg-[#f1e9e4] ${
+        className={`fixed right-5 top-5 z-40 flex h-9 w-9 items-center justify-center rounded-full border border-[#ddcec6] bg-[#f8f4ef]/90 shadow-sm backdrop-blur transition-colors hover:bg-[#f1e9e4] sm:right-8 sm:top-7 ${
           pathname === "/favorites" ? "text-[#9d615d]" : "text-[#5d514c]"
         }`}
       >
@@ -51,12 +78,6 @@ export default function LanguageSwitcher() {
           </span>
         )}
       </Link>
-
-      <div role="group" aria-label={t.language.label} className="flex items-center rounded-full border border-[#ddcec6] bg-[#f8f4ef]/90 px-2.5 py-1.5 text-xs tracking-[0.12em] shadow-sm backdrop-blur">
-        {option("es", t.language.spanish)}
-        <span aria-hidden="true" className="mx-1 text-[#c8b9b2]">|</span>
-        {option("en", t.language.english)}
-      </div>
-    </header>
+    </>
   );
 }

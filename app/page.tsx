@@ -7,7 +7,7 @@ export default function HomePage() {
   const { t } = useLanguage();
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#f8f4ef] px-6 py-12 text-[#352e2b]">
+    <main className="flex min-h-[calc(100dvh-3.5rem)] items-center justify-center bg-[#f8f4ef] px-6 py-12 text-[#352e2b] sm:min-h-[calc(100dvh-4rem)]">
       <div className="flex max-w-2xl flex-col items-center text-center">
         <span
           aria-hidden="true"

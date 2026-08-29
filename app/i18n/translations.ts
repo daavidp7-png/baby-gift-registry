@@ -35,6 +35,8 @@ export const translations = {
       featured: "Destacado",
       view: "Ver regalo",
       reserve: "Reservar",
+      seeMore: "Ver más",
+      seeLess: "Ver menos",
       statuses: {
         available: "Disponible",
         reserved: "Reservado",
@@ -189,6 +191,8 @@ export const translations = {
       featured: "Featured",
       view: "View gift",
       reserve: "Reserve",
+      seeMore: "See more",
+      seeLess: "See less",
       statuses: {
         available: "Available",
         reserved: "Reserved",

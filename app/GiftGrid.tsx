@@ -7,6 +7,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import BulkPurchaseModal, {
   type BulkPurchaseResultItem,
 } from "./BulkPurchaseModal";
+import ExpandableDescription from "./ExpandableDescription";
 import { useLanguage } from "./i18n/LanguageProvider";
 import { useFavorites } from "./lib/favorites";
 import PurchaseModal from "./PurchaseModal";
@@ -709,7 +710,7 @@ export default function GiftGrid({
           return (
             <article
               key={gift.id}
-              className={`overflow-hidden rounded-[22px] bg-white shadow-sm ring-1 transition-shadow ${
+              className={`overflow-hidden rounded-[22px] bg-white shadow-sm ring-1 transition-shadow sm:flex sm:h-full sm:flex-col ${
                 bulkSelected ? "ring-[#a18479]" : "ring-black/5"
               }`}
             >
@@ -794,107 +795,113 @@ export default function GiftGrid({
                 )}
               </div>
 
-              <div className="p-5">
-                <div className="mb-2 flex items-start justify-between gap-2">
-                  <div>
-                    {Brand && (
-                      <p className="text-xs uppercase tracking-[0.18em] text-[#a18e86]">
-                        {Brand}
-                      </p>
-                    )}
+              <div className="p-5 sm:flex sm:flex-1 sm:flex-col">
+                <div>
+                  <div className="mb-2 flex items-start justify-between gap-2">
+                    <div>
+                      {Brand && (
+                        <p className="text-xs uppercase tracking-[0.18em] text-[#a18e86]">
+                          {Brand}
+                        </p>
+                      )}
 
-                    <h2 className="mt-1 text-xl font-semibold">{name}</h2>
+                      <h2 className="mt-1 text-xl font-semibold">{name}</h2>
 
-                    {Category && (
-                      <p className="mt-1 text-sm text-[#8b807b]">
-                        {Category}
-                      </p>
+                      {Category && (
+                        <p className="mt-1 text-sm text-[#8b807b]">
+                          {Category}
+                        </p>
+                      )}
+                    </div>
+
+                    {Featured && (
+                      <span className="whitespace-nowrap rounded-full bg-[#f6e7e4] px-2.5 py-0.5 text-xs font-medium text-[#97675e]">
+                        {t.gifts.featured}
+                      </span>
                     )}
                   </div>
 
-                  {Featured && (
-                    <span className="whitespace-nowrap rounded-full bg-[#f6e7e4] px-2.5 py-0.5 text-xs font-medium text-[#97675e]">
-                      {t.gifts.featured}
-                    </span>
+                  {Description && (
+                    <ExpandableDescription
+                      description={Description}
+                      seeMoreLabel={t.gifts.seeMore}
+                      seeLessLabel={t.gifts.seeLess}
+                    />
                   )}
                 </div>
 
-                {Description && (
-                  <p className="mb-4 text-sm leading-5 text-[#756b67]">
-                    {Description}
-                  </p>
-                )}
+                <div className="sm:mt-auto">
+                  <div className="mb-4 flex items-center justify-between gap-2">
+                    <div>
+                      {typeof Price === "number" && (
+                        <p className="text-lg font-semibold">
+                          CHF {Price.toFixed(2)}
+                        </p>
+                      )}
 
-                <div className="mb-4 flex items-center justify-between gap-2">
-                  <div>
-                    {typeof Price === "number" && (
-                      <p className="text-lg font-semibold">
-                        CHF {Price.toFixed(2)}
-                      </p>
-                    )}
+                      {Priority && (
+                        <p className="mt-1 text-xs text-[#958985]">
+                          {Priority}
+                        </p>
+                      )}
+                    </div>
 
-                    {Priority && (
-                      <p className="mt-1 text-xs text-[#958985]">
-                        {Priority}
-                      </p>
-                    )}
+                    <span
+                      className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                        available
+                          ? "bg-[#e7f0e8] text-[#52705b]"
+                          : purchased
+                            ? "bg-[#f6e7e4] text-[#8a514b]"
+                            : "bg-[#eeeae8] text-[#837873]"
+                      }`}
+                    >
+                      {translatedStatus(currentStatus)}
+                    </span>
                   </div>
 
-                  <span
-                    className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                      available
-                        ? "bg-[#e7f0e8] text-[#52705b]"
-                        : purchased
-                          ? "bg-[#f6e7e4] text-[#8a514b]"
-                          : "bg-[#eeeae8] text-[#837873]"
-                    }`}
-                  >
-                    {translatedStatus(currentStatus)}
-                  </span>
-                </div>
+                  <div className="grid gap-2">
+                    <div className="flex gap-2">
+                      {productUrl && (
+                        <a
+                          href={productUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex-1 rounded-full border border-[#d8cec9] px-3 py-2.5 text-center text-sm font-medium hover:bg-[#f8f3f1]"
+                        >
+                          {t.gifts.view}
+                        </a>
+                      )}
 
-                <div className="grid gap-2">
-                  <div className="flex gap-2">
-                    {productUrl && (
-                      <a
-                        href={productUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex-1 rounded-full border border-[#d8cec9] px-3 py-2.5 text-center text-sm font-medium hover:bg-[#f8f3f1]"
-                      >
-                        {t.gifts.view}
-                      </a>
-                    )}
+                      {available && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setSelectedGift({ id: gift.id, name })
+                          }
+                          className="flex-1 rounded-full bg-[#302b29] px-3 py-2.5 text-sm font-medium text-white hover:bg-[#514844]"
+                        >
+                          {t.gifts.reserve}
+                        </button>
+                      )}
+                    </div>
 
-                    {available && (
+                    {(available || reserved) && (
                       <button
                         type="button"
-                        onClick={() =>
-                          setSelectedGift({ id: gift.id, name })
-                        }
-                        className="flex-1 rounded-full bg-[#302b29] px-3 py-2.5 text-sm font-medium text-white hover:bg-[#514844]"
+                        onClick={() => {
+                          setFeedback(null);
+                          setSelectedPurchase({
+                            id: gift.id,
+                            name,
+                            status: currentStatus,
+                          });
+                        }}
+                        className="w-full rounded-full border border-[#d8cec9] px-3 py-2.5 text-sm font-medium text-[#514844] hover:bg-[#f8f3f1]"
                       >
-                        {t.gifts.reserve}
+                        {t.purchase.markAsPurchased}
                       </button>
                     )}
                   </div>
-
-                  {(available || reserved) && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setFeedback(null);
-                        setSelectedPurchase({
-                          id: gift.id,
-                          name,
-                          status: currentStatus,
-                        });
-                      }}
-                      className="w-full rounded-full border border-[#d8cec9] px-3 py-2.5 text-sm font-medium text-[#514844] hover:bg-[#f8f3f1]"
-                    >
-                      {t.purchase.markAsPurchased}
-                    </button>
-                  )}
                 </div>
               </div>
             </article>
