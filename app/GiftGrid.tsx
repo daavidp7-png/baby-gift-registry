@@ -8,8 +8,11 @@ import BulkPurchaseModal, {
   type BulkPurchaseResultItem,
 } from "./BulkPurchaseModal";
 import ExpandableDescription from "./ExpandableDescription";
+import {
+  getCategorySearchLabels,
+  getLocalizedCategory,
+} from "./i18n/categories";
 import { useLanguage } from "./i18n/LanguageProvider";
-import { categorySearchAliases } from "./i18n/translations";
 import { useFavorites } from "./lib/favorites";
 import PurchaseModal from "./PurchaseModal";
 import ReservationModal from "./ReservationModal";
@@ -165,7 +168,12 @@ export default function GiftGrid({
             .map((gift) => gift.fields.Category)
             .filter((category): category is string => Boolean(category))
         )
-      ).sort((a, b) => a.localeCompare(b, language)),
+      ).sort((a, b) =>
+        getLocalizedCategory(a, language).localeCompare(
+          getLocalizedCategory(b, language),
+          language
+        )
+      ),
     [displayedGifts, language]
   );
 
@@ -357,7 +365,7 @@ export default function GiftGrid({
           gift.fields["Gift Name"],
           gift.fields.Brand,
           category,
-          category ? categorySearchAliases[category]?.join(" ") : undefined,
+          category ? getCategorySearchLabels(category).join(" ") : undefined,
           gift.fields.Description,
           gift.fields.Store,
         ]
@@ -729,7 +737,7 @@ export default function GiftGrid({
                                 : "bg-white text-[#302b29] hover:bg-[#f5f1ef]"
                             }`}
                           >
-                            {category}
+                            {getLocalizedCategory(category, language)}
                           </button>
                         );
                       })}
@@ -935,7 +943,7 @@ export default function GiftGrid({
 
                       {Category && (
                         <p className="mt-1 text-sm text-[#8b807b]">
-                          {Category}
+                          {getLocalizedCategory(Category, language)}
                         </p>
                       )}
                     </div>

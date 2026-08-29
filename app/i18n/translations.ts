@@ -1,17 +1,5 @@
 export type Language = "es" | "en";
 
-export const categorySearchAliases: Record<string, readonly string[]> = {
-  "Baño y aseo": ["Bath and care"],
-  "Carrito y Paseo": ["Stroller and outings"],
-  Coche: ["Car", "Car seat"],
-  Comedor: ["Feeding", "Dining"],
-  Habitación: ["Nursery", "Bedroom"],
-  Juego: ["Play", "Playtime", "Toys"],
-  Linería: ["Linens", "Bedding"],
-  Regalos: ["Gifts"],
-  "Ropita bebe": ["Baby clothes", "Baby clothing"],
-};
-
 export const translations = {
   es: {
     language: { label: "Idioma", spanish: "Español", english: "Inglés" },
