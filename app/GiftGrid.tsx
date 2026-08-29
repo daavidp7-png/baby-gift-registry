@@ -9,6 +9,7 @@ import BulkPurchaseModal, {
 } from "./BulkPurchaseModal";
 import ExpandableDescription from "./ExpandableDescription";
 import { useLanguage } from "./i18n/LanguageProvider";
+import { categorySearchAliases } from "./i18n/translations";
 import { useFavorites } from "./lib/favorites";
 import PurchaseModal from "./PurchaseModal";
 import ReservationModal from "./ReservationModal";
@@ -54,6 +55,13 @@ const selectedTotalFormatter = new Intl.NumberFormat("de-CH", {
   maximumFractionDigits: 2,
 });
 
+const normalizeSearchText = (value: string) =>
+  value
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLocaleLowerCase()
+    .trim();
+
 export default function GiftGrid({
   gifts,
   favoritesOnly = false,
@@ -65,6 +73,7 @@ export default function GiftGrid({
   const { language, t } = useLanguage();
   const { favoriteIds, toggleFavorite } = useFavorites();
   const [sort, setSort] = useState<SortOption>("recommended");
+  const [searchQuery, setSearchQuery] = useState("");
   const [minPrice, setMinPrice] = useState(0);
   const [maxPrice, setMaxPrice] = useState(MAX_PRICE);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -329,6 +338,10 @@ export default function GiftGrid({
   }, [favoriteNoticeVisible]);
 
   const sortedGifts = useMemo(() => {
+    const searchTerms = normalizeSearchText(searchQuery)
+      .split(/\s+/)
+      .filter(Boolean);
+
     const items = displayedGifts.filter((gift) => {
       const priceMatches =
         gift.fields.Price == null ||
@@ -338,7 +351,24 @@ export default function GiftGrid({
         (gift.fields.Category != null &&
           selectedCategories.has(gift.fields.Category));
 
-      return priceMatches && categoryMatches;
+      const category = gift.fields.Category;
+      const searchableText = normalizeSearchText(
+        [
+          gift.fields["Gift Name"],
+          gift.fields.Brand,
+          category,
+          category ? categorySearchAliases[category]?.join(" ") : undefined,
+          gift.fields.Description,
+          gift.fields.Store,
+        ]
+          .filter((value): value is string => Boolean(value))
+          .join(" ")
+      );
+      const searchMatches = searchTerms.every((term) =>
+        searchableText.includes(term)
+      );
+
+      return priceMatches && categoryMatches && searchMatches;
     });
 
     if (sort === "price-asc") {
@@ -362,7 +392,7 @@ export default function GiftGrid({
         (a.fields["Display Order"] ?? 9999) -
         (b.fields["Display Order"] ?? 9999)
     );
-  }, [displayedGifts, maxPrice, minPrice, selectedCategories, sort]);
+  }, [displayedGifts, maxPrice, minPrice, searchQuery, selectedCategories, sort]);
 
   const giftSections = favoritesOnly
     ? [{ status: null, gifts: sortedGifts }]
@@ -376,6 +406,7 @@ export default function GiftGrid({
   const priceFilterIsActive = minPrice > 0 || maxPrice < MAX_PRICE;
   const activeFilterCount =
     (priceFilterIsActive ? 1 : 0) +
+    (normalizeSearchText(searchQuery) ? 1 : 0) +
     selectedCategories.size +
     (sort !== "recommended" ? 1 : 0);
 
@@ -423,7 +454,7 @@ export default function GiftGrid({
           {!favoritesOnly && (
             <nav
               aria-label={t.gifts.sectionNavigation}
-              className="flex flex-wrap items-center gap-x-2 gap-y-2 text-xs font-medium uppercase tracking-[0.08em] text-[#756b67] sm:text-sm"
+              className="flex w-full flex-wrap items-center gap-x-2 gap-y-2 text-xs font-medium uppercase tracking-[0.08em] text-[#756b67] sm:w-auto sm:text-sm"
             >
               {(["Available", "Reserved", "Purchased"] as const).map(
                 (status, index) => (
@@ -455,7 +486,7 @@ export default function GiftGrid({
             aria-expanded={filtersOpen}
             aria-controls="gift-filters"
             onClick={() => setFiltersOpen((current) => !current)}
-            className="text-sm font-medium uppercase tracking-[0.08em] text-[#302b29] underline-offset-8 hover:underline"
+            className="ml-auto text-sm font-medium uppercase tracking-[0.08em] text-[#302b29] underline-offset-8 hover:underline"
           >
             {t.gifts.filters.open}
             {activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
@@ -539,6 +570,37 @@ export default function GiftGrid({
               </header>
 
               <div className="flex-1 overflow-y-auto px-5 sm:px-8">
+                {!favoritesOnly && (
+                  <div className="border-b border-[#d8cec9] py-4">
+                    <label
+                      htmlFor="gift-search"
+                      className="block text-base font-medium uppercase"
+                    >
+                      {t.gifts.filters.search}
+                    </label>
+                    <div className="relative mt-3">
+                      <input
+                        id="gift-search"
+                        type="search"
+                        value={searchQuery}
+                        placeholder={t.gifts.filters.searchPlaceholder}
+                        onChange={(event) => setSearchQuery(event.target.value)}
+                        className="w-full appearance-none border border-[#d8cec9] bg-white px-3 py-2.5 pr-11 text-sm font-normal text-[#302b29] outline-none placeholder:text-[#a0948f] focus:border-[#302b29]"
+                      />
+                      {searchQuery && (
+                        <button
+                          type="button"
+                          aria-label={t.gifts.filters.clearSearch}
+                          onClick={() => setSearchQuery("")}
+                          className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-lg text-[#756b67] hover:text-[#302b29] focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-[#756b67]"
+                        >
+                          <span aria-hidden="true">×</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 <div className="border-b border-[#d8cec9] py-4">
                   <label
                     htmlFor="gift-sort"
@@ -688,6 +750,7 @@ export default function GiftGrid({
                   type="button"
                   disabled={activeFilterCount === 0}
                   onClick={() => {
+                    setSearchQuery("");
                     setSort("recommended");
                     setMinPrice(0);
                     setMaxPrice(MAX_PRICE);
@@ -723,6 +786,12 @@ export default function GiftGrid({
             {t.gifts.multiGiftHintBody}
           </p>
         </div>
+      )}
+
+      {!favoritesOnly && sortedGifts.length === 0 && (
+        <p className="rounded-[18px] bg-white px-6 py-10 text-center text-base text-[#756b67] shadow-sm ring-1 ring-black/5">
+          {t.gifts.filters.noResults}
+        </p>
       )}
 
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">

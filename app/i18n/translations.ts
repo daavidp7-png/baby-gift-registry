@@ -1,5 +1,17 @@
 export type Language = "es" | "en";
 
+export const categorySearchAliases: Record<string, readonly string[]> = {
+  "Baño y aseo": ["Bath and care"],
+  "Carrito y Paseo": ["Stroller and outings"],
+  Coche: ["Car", "Car seat"],
+  Comedor: ["Feeding", "Dining"],
+  Habitación: ["Nursery", "Bedroom"],
+  Juego: ["Play", "Playtime", "Toys"],
+  Linería: ["Linens", "Bedding"],
+  Regalos: ["Gifts"],
+  "Ropita bebe": ["Baby clothes", "Baby clothing"],
+};
+
 export const translations = {
   es: {
     language: { label: "Idioma", spanish: "Español", english: "Inglés" },
@@ -36,6 +48,10 @@ export const translations = {
       filters: {
         open: "Filtrar y ordenar",
         close: "Cerrar filtros",
+        search: "Buscar",
+        searchPlaceholder: "Buscar regalo...",
+        clearSearch: "Borrar búsqueda",
+        noResults: "No hemos encontrado ningún regalo que coincida con tu búsqueda.",
         sortBy: "Ordenar por",
         recommended: "Recomendados",
         priceLowHigh: "Precio: de menor a mayor",
@@ -213,6 +229,10 @@ export const translations = {
       filters: {
         open: "Filter & Sort",
         close: "Close filters",
+        search: "Search",
+        searchPlaceholder: "Search gifts...",
+        clearSearch: "Clear search",
+        noResults: "We couldn't find any gifts matching your search.",
         sortBy: "Sort by",
         recommended: "Recommended",
         priceLowHigh: "Price: low to high",
