@@ -17,6 +17,7 @@ export const translations = {
       multiGiftHintTitle: "¿Quieres reservar o comprar varios regalos?",
       multiGiftHintBody:
         "Marca tus favoritos con ♡ y podrás gestionarlos juntos desde Mis favoritos.",
+      sectionNavigation: "Secciones de regalos",
       filters: {
         open: "Filtrar y ordenar",
         close: "Cerrar filtros",
@@ -37,6 +38,11 @@ export const translations = {
       reserve: "Reservar",
       seeMore: "Ver más",
       seeLess: "Ver menos",
+      sections: {
+        available: "Disponibles",
+        reserved: "Reservados",
+        purchased: "Comprados",
+      },
       statuses: {
         available: "Disponible",
         reserved: "Reservado",
@@ -173,6 +179,7 @@ export const translations = {
       multiGiftHintTitle: "Want to reserve or purchase several gifts?",
       multiGiftHintBody:
         "Tap ♡ to save them and manage them together from My favorites.",
+      sectionNavigation: "Gift sections",
       filters: {
         open: "Filter & Sort",
         close: "Close filters",
@@ -193,6 +200,11 @@ export const translations = {
       reserve: "Reserve",
       seeMore: "See more",
       seeLess: "See less",
+      sections: {
+        available: "Available",
+        reserved: "Reserved",
+        purchased: "Purchased",
+      },
       statuses: {
         available: "Available",
         reserved: "Reserved",

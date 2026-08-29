@@ -298,6 +298,12 @@ export default function GiftGrid({
     });
   };
 
+  const scrollToGiftSection = (status: GiftStatus) => {
+    document
+      .getElementById(`gift-section-${status.toLowerCase()}`)
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   useEffect(() => {
     if (!filtersOpen) return;
 
@@ -358,6 +364,15 @@ export default function GiftGrid({
     );
   }, [displayedGifts, maxPrice, minPrice, selectedCategories, sort]);
 
+  const giftSections = favoritesOnly
+    ? [{ status: null, gifts: sortedGifts }]
+    : (["Available", "Reserved", "Purchased"] as const)
+        .map((status) => ({
+          status,
+          gifts: sortedGifts.filter((gift) => getGiftStatus(gift) === status),
+        }))
+        .filter((section) => section.gifts.length > 0);
+
   const priceFilterIsActive = minPrice > 0 || maxPrice < MAX_PRICE;
   const activeFilterCount =
     (priceFilterIsActive ? 1 : 0) +
@@ -394,11 +409,7 @@ export default function GiftGrid({
       )}
 
       <div className="mb-6">
-        <div
-          className={`flex flex-wrap items-center gap-x-4 gap-y-3 py-2 ${
-            favoritesOnly ? "justify-between" : "justify-end"
-          }`}
-        >
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 py-2">
           {favoritesOnly && (
             <Link
               href="/gifts"
@@ -407,6 +418,36 @@ export default function GiftGrid({
               <span aria-hidden="true">←</span>
               {t.favorites.returnToGifts}
             </Link>
+          )}
+
+          {!favoritesOnly && (
+            <nav
+              aria-label={t.gifts.sectionNavigation}
+              className="flex flex-wrap items-center gap-x-2 gap-y-2 text-xs font-medium uppercase tracking-[0.08em] text-[#756b67] sm:text-sm"
+            >
+              {(["Available", "Reserved", "Purchased"] as const).map(
+                (status, index) => (
+                  <span key={status} className="inline-flex items-center gap-2">
+                    {index > 0 && (
+                      <span aria-hidden="true" className="text-[#c8b9b2]">
+                        ·
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => scrollToGiftSection(status)}
+                      className="rounded-sm underline-offset-8 transition-colors hover:text-[#302b29] hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#756b67]"
+                    >
+                      {status === "Available"
+                        ? t.gifts.sections.available
+                        : status === "Reserved"
+                          ? t.gifts.sections.reserved
+                          : t.gifts.sections.purchased}
+                    </button>
+                  </span>
+                )
+              )}
+            </nav>
           )}
 
           <button
@@ -685,7 +726,23 @@ export default function GiftGrid({
       )}
 
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        {sortedGifts.map((gift) => {
+        {giftSections.flatMap((section, sectionIndex) => [
+          !favoritesOnly && section.status && (
+            <h2
+              key={`${section.status}-heading`}
+              id={`gift-section-${section.status.toLowerCase()}`}
+              className={`col-span-full scroll-mt-8 text-lg font-semibold text-[#302b29] sm:text-xl ${
+                sectionIndex === 0 ? "" : "mt-7 sm:mt-10"
+              }`}
+            >
+              {section.status === "Available"
+                  ? t.gifts.sections.available
+                  : section.status === "Reserved"
+                    ? t.gifts.sections.reserved
+                    : t.gifts.sections.purchased}
+            </h2>
+          ),
+          ...section.gifts.map((gift) => {
           const {
             Brand,
             Category,
@@ -906,7 +963,8 @@ export default function GiftGrid({
               </div>
             </article>
           );
-        })}
+          }),
+        ])}
       </div>
 
       {favoriteNoticeVisible && !favoritesOnly && (
