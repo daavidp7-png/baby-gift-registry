@@ -9,6 +9,19 @@ export const translations = {
       enter: "Entrar",
       loading: "Cargando…",
     },
+    giftRegistryInfo: {
+      eyebrow: "Lista de regalos",
+      title: "¿Cómo funciona la lista?",
+      close: "Cerrar información sobre la lista de regalos",
+      introduction:
+        "Si quieres hacernos uno de estos regalos, puedes reservarlo mientras decides dónde comprarlo o marcarlo como comprado cuando ya lo hayas adquirido.",
+      purchaseNotice: "La compra no se realiza a través de esta página.",
+      purchaseDetails:
+        "Puedes usar “Ver regalo” para ir a la tienda que hemos indicado o comprarlo donde tú prefieras.",
+      closing:
+        "Al reservarlo o marcarlo como comprado, nos ayudas a mantener la lista actualizada y evitar regalos duplicados. ♡",
+      understood: "Entendido",
+    },
     gifts: {
       eyebrow: "Lista de regalos",
       title: "La lista de regalos de nuestra pequeña",
@@ -172,6 +185,19 @@ export const translations = {
       description: "A little space created with love while we wait for you.",
       enter: "Enter",
       loading: "Loading…",
+    },
+    giftRegistryInfo: {
+      eyebrow: "Gift list",
+      title: "How does the gift list work?",
+      close: "Close gift list information",
+      introduction:
+        "If you'd like to give us one of these gifts, you can reserve it while you decide where to buy it, or mark it as purchased once you've already bought it.",
+      purchaseNotice: "Purchases are not made through this website.",
+      purchaseDetails:
+        "You can use “View gift” to visit the suggested store, or buy it wherever you prefer.",
+      closing:
+        "By reserving a gift or marking it as purchased, you help us keep the list up to date and avoid duplicate gifts. ♡",
+      understood: "Got it",
     },
     gifts: {
       eyebrow: "Baby Registry",

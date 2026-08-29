@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useEffect } from "react";
+import { type ReactNode, useEffect, useRef } from "react";
 
 type ModalDialogProps = {
   titleId: string;
@@ -21,36 +21,87 @@ export default function ModalDialog({
   onClose,
   children,
 }: ModalDialogProps) {
+  const dialogRef = useRef<HTMLElement>(null);
+  const canCloseRef = useRef(canClose);
+  const onCloseRef = useRef(onClose);
+
+  useEffect(() => {
+    canCloseRef.current = canClose;
+    onCloseRef.current = onClose;
+  }, [canClose, onClose]);
+
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && canClose) onClose();
+    const previouslyFocused = document.activeElement;
+    const focusableSelector =
+      'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && canCloseRef.current) {
+        onCloseRef.current();
+        return;
+      }
+
+      if (event.key !== "Tab") return;
+
+      const focusableElements = Array.from(
+        dialogRef.current?.querySelectorAll<HTMLElement>(focusableSelector) ?? []
+      );
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements.at(-1);
+
+      if (!firstElement || !lastElement) {
+        event.preventDefault();
+        return;
+      }
+
+      if (event.shiftKey && document.activeElement === firstElement) {
+        event.preventDefault();
+        lastElement.focus();
+      } else if (!event.shiftKey && document.activeElement === lastElement) {
+        event.preventDefault();
+        firstElement.focus();
+      }
     };
+
+    const focusFrame = window.requestAnimationFrame(() => {
+      const dialog = dialogRef.current;
+      if (!dialog?.contains(document.activeElement)) {
+        dialog?.querySelector<HTMLElement>(focusableSelector)?.focus();
+      }
+    });
 
     document.body.style.overflow = "hidden";
-    window.addEventListener("keydown", closeOnEscape);
+    window.addEventListener("keydown", handleKeyDown);
 
     return () => {
+      window.cancelAnimationFrame(focusFrame);
       document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", closeOnEscape);
+      window.removeEventListener("keydown", handleKeyDown);
+
+      if (previouslyFocused instanceof HTMLElement && previouslyFocused.isConnected) {
+        previouslyFocused.focus();
+      }
     };
-  }, [canClose, onClose]);
+  }, []);
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
       <button
         type="button"
-        aria-label={closeLabel}
+        aria-hidden="true"
+        tabIndex={-1}
         disabled={!canClose}
         onClick={onClose}
         className="absolute inset-0 bg-black/40"
       />
 
       <section
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="relative z-10 w-full max-w-md rounded-[20px] bg-white p-5 shadow-2xl sm:p-6"
+        className="relative z-10 max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-[20px] bg-white p-5 shadow-2xl sm:p-6"
       >
         <div className="flex items-start justify-between gap-4">
           <div>
