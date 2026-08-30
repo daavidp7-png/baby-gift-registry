@@ -84,6 +84,12 @@ function reservationFormula(ids: string[]) {
   return `AND({Reservation Status}='Reserved',${matches.length === 1 ? matches[0] : `OR(${matches.join(",")})`})`;
 }
 
+function linkedGiftId(reservation: AirtableReservation) {
+  return reservation.fields?.Gift?.find((giftId) =>
+    giftIdPattern.test(giftId)
+  );
+}
+
 function relevantReservationFormula(
   entries: Array<{ giftId: string; includePurchased: boolean }>
 ) {
@@ -122,7 +128,7 @@ async function getActiveReservationsForGiftIds(giftIds: string[]) {
       if (!response.ok) throw new Error(`Could not read reservations (${response.status})`);
       const page = (await response.json()) as AirtableList<AirtableReservation>;
       for (const reservation of page.records ?? []) {
-        const giftId = reservation.fields?.["Gift Record ID"];
+        const giftId = linkedGiftId(reservation);
         if (giftId && !reservations.has(giftId)) reservations.set(giftId, reservation);
       }
       offset = page.offset;
@@ -159,7 +165,7 @@ async function getRelevantReservationsForConfirmation(
       }
       const page = (await response.json()) as AirtableList<AirtableReservation>;
       for (const reservation of page.records ?? []) {
-        const giftId = reservation.fields?.["Gift Record ID"];
+        const giftId = linkedGiftId(reservation);
         if (giftId && !reservations.has(giftId)) {
           reservations.set(giftId, reservation);
         }

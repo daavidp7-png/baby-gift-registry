@@ -9,12 +9,17 @@ const GIFTS_URL = "https://alinaperezurrutia.com/gifts";
 const resendApiKey = process.env.RESEND_API_KEY?.trim();
 const resend = resendApiKey ? new Resend(resendApiKey) : null;
 
-type EmailKind = "reservation" | "purchase" | "bulk purchase";
+type EmailKind =
+  | "reservation"
+  | "bulk reservation"
+  | "purchase"
+  | "bulk purchase";
 
 type EmailContent = {
   subject: string;
   heading: string;
   paragraphs: string[];
+  giftListHeading?: string;
   giftNames?: string[];
   closingParagraph?: string;
   cta: string;
@@ -53,6 +58,9 @@ function escapeHtml(value: string) {
 }
 
 function renderHtml(content: EmailContent) {
+  const giftListHeading = content.giftListHeading
+    ? `<h2 style="margin:22px 0 8px;color:#8e6259;font-size:13px;line-height:1.4;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;">${escapeHtml(content.giftListHeading)}</h2>`
+    : "";
   const giftList = content.giftNames?.length
     ? `<ul style="margin:22px 0 24px;padding-left:22px;color:#433936;font-size:16px;line-height:1.75;">${content.giftNames
         .map((giftName) => `<li>${escapeHtml(giftName)}</li>`)
@@ -95,6 +103,7 @@ function renderHtml(content: EmailContent) {
               `<p style="margin:0 0 18px;color:#514542;font-size:16px;line-height:1.7;">${escapeHtml(paragraph)}</p>`
           )
           .join("")}
+        ${giftListHeading}
         ${giftList}
         ${
           content.closingParagraph
@@ -140,6 +149,7 @@ function renderText(content: EmailContent) {
     content.heading,
     "",
     ...content.paragraphs.flatMap((paragraph) => [paragraph, ""]),
+    content.giftListHeading ?? "",
     giftList,
     content.closingParagraph ?? "",
     `${content.cta}: ${content.ctaUrl}`,
@@ -266,48 +276,107 @@ function purchaseInformation(language: Language) {
       };
 }
 
+function reservationContent(giftNames: string[], language: Language) {
+  const multiple = giftNames.length > 1;
+  if (language === "en") {
+    return {
+      subject: multiple
+        ? "You've reserved several gifts for Alina 🎁"
+        : "You reserved a gift for Alina 🎁",
+      heading: multiple
+        ? "You've reserved several gifts\nfor Alina 🎁"
+        : "You reserved a gift\nfor Alina 🎁",
+      paragraphs: multiple
+        ? [
+            "Thank you for reserving these gifts for Alina!",
+            "We've saved them for you on our list.",
+          ]
+        : [
+            `You reserved “${giftNames[0]}”.`,
+            "Thank you for helping us prepare for Alina’s arrival.",
+            "Thank you for reserving this gift for Alina!",
+            "We've saved it for you on our list.",
+            "Once you have bought it, return to the gift list and mark it as purchased using this same email address.",
+          ],
+      giftListHeading: multiple ? "Your reserved gifts" : undefined,
+      giftNames: multiple ? giftNames : undefined,
+      closingParagraph: multiple
+        ? "Once you have bought them, return to the gift list and mark them as purchased using this same email address."
+        : undefined,
+      cta: "Back to the gift list",
+      ctaUrl: GIFTS_URL,
+      information: reservationInformation(language),
+      shipping: shippingInformation(language),
+      footer: footer(language),
+    } satisfies EmailContent;
+  }
+
+  return {
+    subject: multiple
+      ? "Has reservado varios regalos para Alina 🎁"
+      : "Has reservado un regalo para Alina 🎁",
+    heading: multiple
+      ? "Has reservado varios regalos\npara Alina 🎁"
+      : "Has reservado un regalo\npara Alina 🎁",
+    paragraphs: multiple
+      ? [
+          "¡Gracias por reservar estos regalos para Alina!",
+          "Los hemos guardado para ti en nuestra lista.",
+        ]
+      : [
+          `Has reservado “${giftNames[0]}”.`,
+          "Gracias por ayudarnos a preparar la llegada de Alina.",
+          "¡Gracias por reservar este regalo para Alina!",
+          "Lo hemos guardado para ti en nuestra lista.",
+          "Cuando lo hayas comprado, vuelve a la lista y márcalo como comprado usando este mismo correo electrónico.",
+        ],
+    giftListHeading: multiple ? "Tus regalos reservados" : undefined,
+    giftNames: multiple ? giftNames : undefined,
+    closingParagraph: multiple
+      ? "Cuando los hayas comprado, vuelve a la lista y márcalos como comprados usando este mismo correo electrónico."
+      : undefined,
+    cta: "Volver a la lista",
+    ctaUrl: GIFTS_URL,
+    information: reservationInformation(language),
+    shipping: shippingInformation(language),
+    footer: footer(language),
+  } satisfies EmailContent;
+}
+
 export function sendReservationConfirmation({
   to,
   giftName,
   language,
   idempotencyKey,
 }: ConfirmationInput) {
-  const content: EmailContent =
-    language === "en"
-      ? {
-          subject: "You reserved a gift for Alina 🎁",
-          heading: "You reserved a gift\nfor Alina 🎁",
-          paragraphs: [
-            `You reserved “${giftName}”.`,
-            "Thank you for helping us prepare for Alina’s arrival.",
-            "Once you have bought it, return to the gift list and mark it as purchased using this same email address.",
-          ],
-          cta: "Back to the gift list",
-          ctaUrl: GIFTS_URL,
-          information: reservationInformation(language),
-          shipping: shippingInformation(language),
-          footer: footer(language),
-        }
-      : {
-          subject: "Has reservado un regalo para Alina 🎁",
-          heading: "Has reservado un regalo\npara Alina 🎁",
-          paragraphs: [
-            `Has reservado “${giftName}”.`,
-            "Gracias por ayudarnos a preparar la llegada de Alina.",
-            "Cuando lo hayas comprado, vuelve a la lista y márcalo como comprado usando este mismo correo electrónico.",
-          ],
-          cta: "Volver a la lista",
-          ctaUrl: GIFTS_URL,
-          information: reservationInformation(language),
-          shipping: shippingInformation(language),
-          footer: footer(language),
-        };
+  const content = reservationContent([giftName], language);
 
   return safeSendEmail(
     "reservation",
     to,
     content,
     `reservation-confirmation-${idempotencyKey}`
+  );
+}
+
+export function sendBulkReservationConfirmation({
+  to,
+  giftNames,
+  language,
+  idempotencyKey,
+}: {
+  to: string;
+  giftNames: string[];
+  language: Language;
+  idempotencyKey: string;
+}) {
+  if (giftNames.length === 0) return Promise.resolve();
+
+  return safeSendEmail(
+    "bulk reservation",
+    to,
+    reservationContent(giftNames, language),
+    `bulk-reservation-confirmation-${idempotencyKey}`
   );
 }
 

@@ -7,6 +7,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import BulkPurchaseModal, {
   type BulkPurchaseResultItem,
 } from "./BulkPurchaseModal";
+import BulkReservationModal, {
+  type BulkReservationResultItem,
+} from "./BulkReservationModal";
 import ExpandableDescription from "./ExpandableDescription";
 import {
   getCategorySearchLabels,
@@ -99,6 +102,9 @@ export default function GiftGrid({
     () => new Set()
   );
   const [bulkPurchaseGiftIds, setBulkPurchaseGiftIds] = useState<
+    string[] | null
+  >(null);
+  const [bulkReservationGiftIds, setBulkReservationGiftIds] = useState<
     string[] | null
   >(null);
   const [giftStatusOverrides, setGiftStatusOverrides] = useState<
@@ -213,22 +219,22 @@ export default function GiftGrid({
     });
   };
 
-  const purchasableFavoriteGiftIds = displayedGifts
+  const actionableFavoriteGiftIds = displayedGifts
     .filter((gift) => getGiftStatus(gift) !== "Purchased")
     .map((gift) => gift.id);
-  const allPurchasableFavoritesSelected =
-    purchasableFavoriteGiftIds.length > 0 &&
-    purchasableFavoriteGiftIds.every((giftId) =>
+  const allActionableFavoritesSelected =
+    actionableFavoriteGiftIds.length > 0 &&
+    actionableFavoriteGiftIds.every((giftId) =>
       bulkSelectedGiftIds.has(giftId)
     );
 
-  const toggleAllPurchasableFavorites = () => {
+  const toggleAllActionableFavorites = () => {
     setBulkSelectedGiftIds((current) => {
-      if (allPurchasableFavoritesSelected) return new Set();
+      if (allActionableFavoritesSelected) return new Set();
 
       const next = new Set(current);
 
-      purchasableFavoriteGiftIds.forEach((giftId) => next.add(giftId));
+      actionableFavoriteGiftIds.forEach((giftId) => next.add(giftId));
 
       return next;
     });
@@ -267,6 +273,28 @@ export default function GiftGrid({
     setBulkSelectedGiftIds((current) => {
       const next = new Set(current);
       purchasedIds.forEach((giftId) => next.delete(giftId));
+      return next;
+    });
+
+    router.refresh();
+  };
+
+  const handleBulkReservationComplete = (
+    items: BulkReservationResultItem[]
+  ) => {
+    const reservedIds = new Set(
+      items
+        .filter((item) => item.outcome === "reserved")
+        .map((item) => item.giftId)
+    );
+
+    items.forEach((item) => {
+      if (item.status) updateGiftStatus(item.giftId, item.status);
+    });
+
+    setBulkSelectedGiftIds((current) => {
+      const next = new Set(current);
+      reservedIds.forEach((giftId) => next.delete(giftId));
       return next;
     });
 
@@ -495,12 +523,23 @@ export default function GiftGrid({
             <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-3">
               <button
                 type="button"
-                onClick={toggleAllPurchasableFavorites}
+                onClick={toggleAllActionableFavorites}
                 className="text-xs font-medium uppercase tracking-[0.08em] text-[#756b67] underline-offset-8 hover:underline sm:text-sm"
               >
-                {allPurchasableFavoritesSelected
+                {allActionableFavoritesSelected
                   ? t.bulkPurchase.deselectAll
-                  : t.bulkPurchase.selectAllPurchasable}
+                  : t.bulkPurchase.selectAvailable}
+              </button>
+              <button
+                type="button"
+                disabled={bulkSelectedGiftIds.size === 0}
+                onClick={() => {
+                  setFeedback(null);
+                  setBulkReservationGiftIds(Array.from(bulkSelectedGiftIds));
+                }}
+                className="rounded-full border border-[#302b29] px-4 py-2 text-xs font-medium uppercase tracking-[0.06em] text-[#302b29] hover:bg-[#f3ece9] disabled:cursor-not-allowed disabled:opacity-40 sm:text-sm"
+              >
+                {t.bulkReservation.reserveSelected} ({bulkSelectedGiftIds.size})
               </button>
               <button
                 type="button"
@@ -1108,6 +1147,14 @@ export default function GiftGrid({
           selectedTotal={bulkPurchaseSelectedTotal}
           onClose={() => setBulkPurchaseGiftIds(null)}
           onComplete={handleBulkPurchaseComplete}
+        />
+      )}
+
+      {bulkReservationGiftIds && (
+        <BulkReservationModal
+          giftIds={bulkReservationGiftIds}
+          onClose={() => setBulkReservationGiftIds(null)}
+          onComplete={handleBulkReservationComplete}
         />
       )}
     </>
