@@ -3,7 +3,13 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  type FormEvent,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import BulkPurchaseModal, {
   type BulkPurchaseResultItem,
 } from "./BulkPurchaseModal";
@@ -47,8 +53,11 @@ export type GiftRecord = {
 type SortOption = "recommended" | "price-asc" | "price-desc";
 type FilterSection = "category" | "price";
 type GiftStatus = "Available" | "Reserved" | "Purchased";
+type RecoveryState = "idle" | "loading" | "success" | "no-results" | "error";
 
 const MAX_PRICE = 3000;
+const RECOVERED_RESERVATIONS_KEY = "baby-registry-recovered-reservations";
+const giftIdPattern = /^rec[a-zA-Z0-9]{14}$/;
 
 const priceFormatter = new Intl.NumberFormat("de-CH", {
   maximumFractionDigits: 0,
@@ -68,6 +77,33 @@ const normalizeSearchText = (value: string) =>
     .toLocaleLowerCase()
     .trim();
 
+const replaceTemplateValue = (
+  template: string,
+  key: "count" | "email",
+  value: string | number
+) => template.replace(`{${key}}`, String(value));
+
+function calculateSelectedTotal(
+  gifts: GiftRecord[],
+  giftIds: string[] | null,
+  statusOverrides: Map<string, GiftStatus>
+) {
+  if (!giftIds) return 0;
+
+  const selectedIds = new Set(giftIds);
+  return gifts.reduce((total, gift) => {
+    if (!selectedIds.has(gift.id)) return total;
+    const status = statusOverrides.get(gift.id) ?? gift.fields.Status;
+    if (status === "Purchased") return total;
+
+    const price = gift.fields.Price;
+    return (
+      total +
+      (typeof price === "number" && Number.isFinite(price) ? price : 0)
+    );
+  }, 0);
+}
+
 export default function GiftGrid({
   gifts,
   favoritesOnly = false,
@@ -78,6 +114,14 @@ export default function GiftGrid({
   const router = useRouter();
   const { language, t } = useLanguage();
   const { favoriteIds, toggleFavorite } = useFavorites();
+  const [recoveredGiftIds, setRecoveredGiftIds] = useState<Set<string>>(
+    () => new Set()
+  );
+  const [recoveredName, setRecoveredName] = useState("");
+  const [recoveredEmail, setRecoveredEmail] = useState("");
+  const [recoveryEmailInput, setRecoveryEmailInput] = useState("");
+  const [recoveryState, setRecoveryState] = useState<RecoveryState>("idle");
+  const [recoveryError, setRecoveryError] = useState("");
   const [sort, setSort] = useState<SortOption>("recommended");
   const [searchQuery, setSearchQuery] = useState("");
   const [minPrice, setMinPrice] = useState(0);
@@ -120,24 +164,71 @@ export default function GiftGrid({
   const displayedGifts = useMemo(
     () =>
       favoritesOnly
-        ? gifts.filter((gift) => favoriteIds.has(gift.id))
+        ? gifts.filter(
+            (gift) =>
+              favoriteIds.has(gift.id) || recoveredGiftIds.has(gift.id)
+          )
         : gifts,
-    [favoriteIds, favoritesOnly, gifts]
+    [favoriteIds, favoritesOnly, gifts, recoveredGiftIds]
   );
 
-  const bulkPurchaseSelectedTotal = useMemo(() => {
-    if (!bulkPurchaseGiftIds) return 0;
+  useEffect(() => {
+    if (!favoritesOnly) return;
 
-    const selectedIds = new Set(bulkPurchaseGiftIds);
-    return gifts.reduce((total, gift) => {
-      if (!selectedIds.has(gift.id)) return total;
-      const status = giftStatusOverrides.get(gift.id) ?? gift.fields.Status;
-      if (status === "Purchased") return total;
+    try {
+      const stored = window.sessionStorage.getItem(RECOVERED_RESERVATIONS_KEY);
+      if (!stored) return;
 
-      const price = gift.fields.Price;
-      return total + (typeof price === "number" && Number.isFinite(price) ? price : 0);
-    }, 0);
-  }, [bulkPurchaseGiftIds, giftStatusOverrides, gifts]);
+      const value: unknown = JSON.parse(stored);
+      if (!value || typeof value !== "object" || Array.isArray(value)) return;
+
+      const recovery = value as Record<string, unknown>;
+      const email =
+        typeof recovery.email === "string"
+          ? recovery.email.trim().toLowerCase()
+          : "";
+      const name =
+        typeof recovery.name === "string" ? recovery.name.trim() : "";
+      const knownGiftIds = new Set(gifts.map((gift) => gift.id));
+      const giftIds = Array.isArray(recovery.giftIds)
+        ? recovery.giftIds.filter(
+            (giftId): giftId is string =>
+              typeof giftId === "string" &&
+              giftIdPattern.test(giftId) &&
+              knownGiftIds.has(giftId)
+          )
+        : [];
+
+      if (!email || giftIds.length === 0) return;
+      setRecoveredName(name);
+      setRecoveredEmail(email);
+      setRecoveryEmailInput(email);
+      setRecoveredGiftIds(new Set(giftIds));
+      setRecoveryState("success");
+    } catch {
+      window.sessionStorage.removeItem(RECOVERED_RESERVATIONS_KEY);
+    }
+  }, [favoritesOnly, gifts]);
+
+  const bulkPurchaseSelectedTotal = useMemo(
+    () =>
+      calculateSelectedTotal(
+        gifts,
+        bulkPurchaseGiftIds,
+        giftStatusOverrides
+      ),
+    [bulkPurchaseGiftIds, giftStatusOverrides, gifts]
+  );
+
+  const bulkReservationSelectedTotal = useMemo(
+    () =>
+      calculateSelectedTotal(
+        gifts,
+        bulkReservationGiftIds,
+        giftStatusOverrides
+      ),
+    [bulkReservationGiftIds, giftStatusOverrides, gifts]
+  );
 
   const liveSelectedTotal = useMemo(
     () =>
@@ -301,6 +392,80 @@ export default function GiftGrid({
     router.refresh();
   };
 
+  const recoverReservations = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (recoveryState === "loading") return;
+
+    setRecoveryState("loading");
+    setRecoveryError("");
+
+    try {
+      const response = await fetch("/api/reservations/recover", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: recoveryEmailInput, language }),
+      });
+      const data = (await response.json()) as {
+        email?: string;
+        name?: string | null;
+        giftIds?: string[];
+        error?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(data.error ?? t.favorites.recovery.errors.temporary);
+      }
+
+      const knownGiftIds = new Set(gifts.map((gift) => gift.id));
+      const giftIds = (data.giftIds ?? []).filter(
+        (giftId) => giftIdPattern.test(giftId) && knownGiftIds.has(giftId)
+      );
+      const normalizedEmail = data.email ?? recoveryEmailInput.trim().toLowerCase();
+      const name = data.name?.trim() ?? "";
+
+      if (giftIds.length === 0) {
+        setRecoveredGiftIds(new Set());
+        setRecoveredName("");
+        setRecoveredEmail("");
+        setRecoveryState("no-results");
+        window.sessionStorage.removeItem(RECOVERED_RESERVATIONS_KEY);
+        return;
+      }
+
+      setRecoveredGiftIds(new Set(giftIds));
+      setRecoveredName(name);
+      setRecoveredEmail(normalizedEmail);
+      setRecoveryEmailInput(normalizedEmail);
+      setRecoveryState("success");
+      window.sessionStorage.setItem(
+        RECOVERED_RESERVATIONS_KEY,
+        JSON.stringify({ email: normalizedEmail, name, giftIds })
+      );
+    } catch (error) {
+      setRecoveryError(
+        error instanceof Error
+          ? error.message
+          : t.favorites.recovery.errors.temporary
+      );
+      setRecoveryState("error");
+    }
+  };
+
+  const changeRecoveryEmail = () => {
+    setBulkSelectedGiftIds((current) => {
+      const next = new Set(current);
+      recoveredGiftIds.forEach((giftId) => next.delete(giftId));
+      return next;
+    });
+    setRecoveredGiftIds(new Set());
+    setRecoveredName("");
+    setRecoveredEmail("");
+    setRecoveryEmailInput("");
+    setRecoveryError("");
+    setRecoveryState("idle");
+    window.sessionStorage.removeItem(RECOVERED_RESERVATIONS_KEY);
+  };
+
   const toggleCategory = (category: string) => {
     setSelectedCategories((current) => {
       const next = new Set(current);
@@ -431,20 +596,6 @@ export default function GiftGrid({
     (normalizeSearchText(searchQuery) ? 1 : 0) +
     selectedCategories.size +
     (sort !== "recommended" ? 1 : 0);
-
-  if (favoritesOnly && displayedGifts.length === 0) {
-    return (
-      <div className="rounded-[20px] bg-white p-8 text-center shadow-sm ring-1 ring-black/5">
-        <p className="text-base leading-6 text-[#756b67]">{t.favorites.empty}</p>
-        <Link
-          href="/gifts"
-          className="mt-6 inline-flex rounded-full bg-[#302b29] px-5 py-2.5 text-sm font-medium text-white hover:bg-[#514844]"
-        >
-          {t.favorites.returnToGifts}
-        </Link>
-      </div>
-    );
-  }
 
   return (
     <>
@@ -795,6 +946,100 @@ export default function GiftGrid({
         )}
       </div>
 
+      {favoritesOnly && recoveryState === "success" ? (
+        <div
+          role="status"
+          className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-[18px] border border-[#dfd3cc] bg-[#f7efea] px-5 py-4 sm:px-6"
+        >
+          <div>
+            <p className="font-semibold text-[#302b29]">
+              {recoveredGiftIds.size === 1
+                ? t.favorites.recovery.recoveredOne
+                : replaceTemplateValue(
+                    t.favorites.recovery.recoveredMany,
+                    "count",
+                    recoveredGiftIds.size
+                  )}
+            </p>
+            <p className="mt-1 text-sm leading-5 text-[#756b67]">
+              {t.favorites.recovery.recoveredDescription}
+            </p>
+          </div>
+          <div className="text-left sm:text-right">
+            <p className="text-sm text-[#756b67]">
+              {replaceTemplateValue(
+                t.favorites.recovery.recoveredFor,
+                "email",
+                recoveredEmail
+              )}
+            </p>
+            <button
+              type="button"
+              onClick={changeRecoveryEmail}
+              className="mt-2 text-xs font-medium uppercase tracking-[0.08em] text-[#302b29] underline-offset-4 hover:underline sm:text-sm"
+            >
+              {t.favorites.recovery.changeEmail}
+            </button>
+          </div>
+        </div>
+      ) : favoritesOnly ? (
+        <form
+          onSubmit={recoverReservations}
+          className="mb-6 rounded-[18px] border border-[#e4d9d3] bg-[#fffdfa] px-5 py-5 shadow-sm sm:px-6"
+        >
+          <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(280px,0.7fr)] md:items-end">
+            <div>
+              <h2 className="text-lg font-semibold text-[#302b29]">
+                {t.favorites.recovery.title}
+              </h2>
+              <p className="mt-1 max-w-2xl text-sm leading-5 text-[#756b67]">
+                {t.favorites.recovery.description}
+              </p>
+            </div>
+            <div>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <label className="sr-only" htmlFor="reservation-recovery-email">
+                  {t.reservation.email}
+                </label>
+                <input
+                  id="reservation-recovery-email"
+                  type="email"
+                  required
+                  maxLength={254}
+                  autoComplete="email"
+                  value={recoveryEmailInput}
+                  onChange={(event) => setRecoveryEmailInput(event.target.value)}
+                  placeholder={t.favorites.recovery.placeholder}
+                  className="min-w-0 flex-1 rounded-full border border-[#d8cec9] bg-white px-4 py-2.5 outline-none placeholder:text-[#a0948f] focus:border-[#302b29]"
+                />
+                <button
+                  type="submit"
+                  disabled={recoveryState === "loading"}
+                  className="shrink-0 rounded-full bg-[#302b29] px-5 py-2.5 text-sm font-medium text-white hover:bg-[#514844] disabled:cursor-wait disabled:opacity-60"
+                >
+                  {recoveryState === "loading"
+                    ? t.favorites.recovery.submitting
+                    : t.favorites.recovery.submit}
+                </button>
+              </div>
+              <p className="mt-2 text-xs text-[#958985]">
+                {t.favorites.recovery.helper}
+              </p>
+            </div>
+          </div>
+          {recoveryState === "no-results" && (
+            <p role="status" className="mt-4 text-sm text-[#8a514b]">
+              {t.favorites.recovery.noResults}
+            </p>
+          )}
+          {recoveryState === "error" && (
+            <p role="alert" className="mt-4 text-sm text-[#9d3f3f]">
+              {recoveryError}
+            </p>
+          )}
+        </form>
+      ) : null}
+
       {!favoritesOnly && (
         <div className="mb-6 flex items-center gap-4 rounded-xl border border-[#eadfd9] bg-[#f7efea] px-5 py-4 text-sm shadow-sm sm:gap-5 sm:px-6">
           <svg
@@ -823,7 +1068,22 @@ export default function GiftGrid({
         </p>
       )}
 
-      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      {favoritesOnly && displayedGifts.length === 0 && (
+        <div className="rounded-[20px] bg-white p-8 text-center shadow-sm ring-1 ring-black/5">
+          <p className="text-base leading-6 text-[#756b67]">
+            {t.favorites.empty}
+          </p>
+          <Link
+            href="/gifts"
+            className="mt-6 inline-flex rounded-full bg-[#302b29] px-5 py-2.5 text-sm font-medium text-white hover:bg-[#514844]"
+          >
+            {t.favorites.returnToGifts}
+          </Link>
+        </div>
+      )}
+
+      {displayedGifts.length > 0 && (
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {giftSections.flatMap((section, sectionIndex) => [
           !favoritesOnly && section.status && (
             <h2
@@ -1063,7 +1323,8 @@ export default function GiftGrid({
           );
           }),
         ])}
-      </div>
+        </div>
+      )}
 
       {favoriteNoticeVisible && !favoritesOnly && (
         <div
@@ -1109,6 +1370,8 @@ export default function GiftGrid({
         <ReservationModal
           giftId={selectedGift.id}
           giftName={selectedGift.name}
+          defaultName={favoritesOnly ? recoveredName || undefined : undefined}
+          defaultEmail={favoritesOnly ? recoveredEmail || undefined : undefined}
           onClose={() => setSelectedGift(null)}
           onReserved={() => {
             updateGiftStatus(selectedGift.id, "Reserved");
@@ -1122,6 +1385,8 @@ export default function GiftGrid({
           giftId={selectedPurchase.id}
           giftName={selectedPurchase.name}
           expectedStatus={selectedPurchase.status}
+          defaultName={favoritesOnly ? recoveredName || undefined : undefined}
+          defaultEmail={favoritesOnly ? recoveredEmail || undefined : undefined}
           onClose={() => setSelectedPurchase(null)}
           onPurchased={() => {
             updateGiftStatus(selectedPurchase.id, "Purchased");
@@ -1145,6 +1410,8 @@ export default function GiftGrid({
         <BulkPurchaseModal
           giftIds={bulkPurchaseGiftIds}
           selectedTotal={bulkPurchaseSelectedTotal}
+          initialName={recoveredName || undefined}
+          initialEmail={recoveredEmail || undefined}
           onClose={() => setBulkPurchaseGiftIds(null)}
           onComplete={handleBulkPurchaseComplete}
         />
@@ -1153,6 +1420,9 @@ export default function GiftGrid({
       {bulkReservationGiftIds && (
         <BulkReservationModal
           giftIds={bulkReservationGiftIds}
+          selectedTotal={bulkReservationSelectedTotal}
+          initialName={recoveredName || undefined}
+          initialEmail={recoveredEmail || undefined}
           onClose={() => setBulkReservationGiftIds(null)}
           onComplete={handleBulkReservationComplete}
         />

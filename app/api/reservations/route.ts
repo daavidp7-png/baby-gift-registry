@@ -4,9 +4,22 @@ import { airtableRequest } from "../../lib/airtable";
 import { sendReservationConfirmation } from "../../lib/email";
 import { invalidateGiftCache } from "../../lib/giftCache";
 import { tryLockGifts, unlockGifts } from "../../lib/giftMutationLock";
-import { findBlockingReservationForGift } from "../../lib/reservationQueries";
+import {
+  findActiveReservationForGift,
+  findBlockingReservationForGift,
+  getActiveReservationGiftsForEmail,
+} from "../../lib/reservationQueries";
+
+type ReservationAction = "review" | "confirm";
+type ReservationClassification =
+  | "available"
+  | "reserved_by_you"
+  | "reserved_by_other"
+  | "purchased"
+  | "changed";
 
 type ReservationInput = {
+  action: ReservationAction;
   giftId: string;
   name: string;
   email: string;
@@ -31,6 +44,7 @@ function parseInput(value: unknown): ReservationInput | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
 
   const input = value as Record<string, unknown>;
+  const action = input.action;
   const giftId = typeof input.giftId === "string" ? input.giftId.trim() : "";
   const name = typeof input.name === "string" ? input.name.trim() : "";
   const email =
@@ -40,6 +54,7 @@ function parseInput(value: unknown): ReservationInput | null {
   const language: Language = input.language === "en" ? "en" : "es";
 
   if (
+    (action !== "review" && action !== "confirm") ||
     !/^rec[a-zA-Z0-9]{14}$/.test(giftId) ||
     name.length < 2 ||
     name.length > 100 ||
@@ -50,7 +65,60 @@ function parseInput(value: unknown): ReservationInput | null {
     return null;
   }
 
-  return { giftId, name, email, message, language };
+  return { action, giftId, name, email, message, language };
+}
+
+async function getGift(giftId: string) {
+  const response = await airtableRequest(
+    `${encodeURIComponent("Gifts")}/${giftId}`
+  );
+  if (!response.ok) {
+    throw new Error(`Could not read gift (${response.status})`);
+  }
+  return (await response.json()) as AirtableGift;
+}
+
+async function reviewReservation(input: ReservationInput) {
+  const [gift, activeReservation, blockingReservation, existingReservations] =
+    await Promise.all([
+      getGift(input.giftId),
+      findActiveReservationForGift(input.giftId),
+      findBlockingReservationForGift(input.giftId),
+      getActiveReservationGiftsForEmail(input.email, [input.giftId]),
+    ]);
+
+  let classification: ReservationClassification = "changed";
+  if (gift.fields?.Active !== false && gift.fields?.Status === "Purchased") {
+    classification = "purchased";
+  } else if (
+    gift.fields?.Active !== false &&
+    gift.fields?.Status === "Reserved"
+  ) {
+    const reservationEmail =
+      activeReservation?.fields?.Email?.trim().toLowerCase() ?? "";
+    classification =
+      activeReservation && reservationEmail === input.email
+        ? "reserved_by_you"
+        : "reserved_by_other";
+  } else if (
+    gift.fields?.Active !== false &&
+    gift.fields?.Status === "Available" &&
+    !blockingReservation
+  ) {
+    classification = "available";
+  }
+
+  return {
+    item: {
+      giftId: input.giftId,
+      name: gift.fields?.["Gift Name"] ?? "Gift",
+      classification,
+      eligible:
+        classification === "available" ||
+        classification === "reserved_by_you",
+    },
+    existingReservations,
+  };
 }
 
 export async function POST(request: Request) {
@@ -79,6 +147,15 @@ export async function POST(request: Request) {
     );
   }
 
+  if (input.action === "review") {
+    try {
+      return Response.json(await reviewReservation(input));
+    } catch (error) {
+      console.error("Gift reservation review error:", error);
+      return Response.json({ error: errors.temporary }, { status: 502 });
+    }
+  }
+
   if (!tryLockGifts([input.giftId])) {
     return Response.json(
       { error: errors.inProgress },
@@ -89,15 +166,26 @@ export async function POST(request: Request) {
   let reservationRecordId: string | null = null;
 
   try {
-    const giftResponse = await airtableRequest(
-      `${encodeURIComponent("Gifts")}/${input.giftId}`
-    );
+    const [gift, activeReservation] = await Promise.all([
+      getGift(input.giftId),
+      findActiveReservationForGift(input.giftId),
+    ]);
 
-    if (!giftResponse.ok) {
-      throw new Error(`Could not read gift (${giftResponse.status})`);
+    if (
+      gift.fields?.Active !== false &&
+      gift.fields?.Status === "Reserved" &&
+      activeReservation
+    ) {
+      const reservationEmail =
+        activeReservation.fields?.Email?.trim().toLowerCase() ?? "";
+      if (reservationEmail === input.email) {
+        return Response.json({
+          ok: true,
+          outcome: "existing",
+          status: "Reserved",
+        });
+      }
     }
-
-    const gift = (await giftResponse.json()) as AirtableGift;
 
     if (gift.fields?.Status !== "Available" || gift.fields.Active === false) {
       return Response.json(
@@ -122,16 +210,10 @@ export async function POST(request: Request) {
       reservationFields.Message = input.message;
     }
 
-    const [latestGiftResponse, existingReservation] = await Promise.all([
-      airtableRequest(`${encodeURIComponent("Gifts")}/${input.giftId}`),
+    const [latestGift, existingReservation] = await Promise.all([
+      getGift(input.giftId),
       findBlockingReservationForGift(input.giftId),
     ]);
-
-    if (!latestGiftResponse.ok) {
-      throw new Error(`Could not re-read gift (${latestGiftResponse.status})`);
-    }
-
-    const latestGift = (await latestGiftResponse.json()) as AirtableGift;
     if (
       latestGift.fields?.Status !== "Available" ||
       latestGift.fields.Active === false ||
@@ -193,7 +275,12 @@ export async function POST(request: Request) {
       language: input.language,
       idempotencyKey: reservationId,
     });
-    return Response.json({ ok: true, reservationId });
+    return Response.json({
+      ok: true,
+      reservationId,
+      outcome: "reserved",
+      status: "Reserved",
+    });
   } catch (error) {
     console.error("Gift reservation error:", error);
     return Response.json(

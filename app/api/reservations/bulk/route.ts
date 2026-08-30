@@ -4,10 +4,16 @@ import { airtableRequest } from "../../../lib/airtable";
 import { sendBulkReservationConfirmation } from "../../../lib/email";
 import { invalidateGiftCache } from "../../../lib/giftCache";
 import { tryLockGifts, unlockGifts } from "../../../lib/giftMutationLock";
+import { getActiveReservationGiftsForEmail } from "../../../lib/reservationQueries";
 
 type BulkAction = "review" | "confirm";
 type GiftStatus = "Available" | "Reserved" | "Purchased";
-type Classification = "available" | "reserved" | "purchased" | "changed";
+type Classification =
+  | "available"
+  | "reserved_by_you"
+  | "reserved_by_other"
+  | "purchased"
+  | "changed";
 type BulkInput = {
   action: BulkAction;
   giftIds: string[];
@@ -29,6 +35,7 @@ type AirtableReservation = {
   id: string;
   fields?: {
     Gift?: string[];
+    Email?: string;
     "Reservation Status"?: string;
   };
 };
@@ -43,7 +50,7 @@ type ReviewItem = {
 type ResultItem = {
   giftId: string;
   name: string;
-  outcome: "reserved" | "skipped";
+  outcome: "reserved" | "existing" | "skipped";
   reason?: Exclude<Classification, "available"> | "error";
   status?: GiftStatus;
 };
@@ -92,7 +99,8 @@ function parseInput(value: unknown): BulkInput | null {
       if (
         giftIdPattern.test(giftId) &&
         (classification === "available" ||
-          classification === "reserved" ||
+          classification === "reserved_by_you" ||
+          classification === "reserved_by_other" ||
           classification === "purchased" ||
           classification === "changed")
       ) {
@@ -168,8 +176,8 @@ async function getGiftsByIds(giftIds: string[]) {
   return gifts;
 }
 
-async function getBlockingReservationGiftIds(giftIds: string[]) {
-  const blocked = new Set<string>();
+async function getBlockingReservations(giftIds: string[]) {
+  const reservations = new Map<string, AirtableReservation>();
   for (const ids of chunks(giftIds)) {
     let offset: string | undefined;
     do {
@@ -177,6 +185,9 @@ async function getBlockingReservationGiftIds(giftIds: string[]) {
         pageSize: "100",
         filterByFormula: blockingReservationFormula(ids),
       });
+      search.append("fields[]", "Gift");
+      search.append("fields[]", "Email");
+      search.append("fields[]", "Reservation Status");
       if (offset) search.set("offset", offset);
       const response = await airtableRequest(
         `${encodeURIComponent("Gift Reservations")}?${search.toString()}`
@@ -187,34 +198,51 @@ async function getBlockingReservationGiftIds(giftIds: string[]) {
       const page = (await response.json()) as AirtableList<AirtableReservation>;
       for (const reservation of page.records ?? []) {
         reservation.fields?.Gift?.forEach((giftId) => {
-          if (giftIdPattern.test(giftId)) blocked.add(giftId);
+          if (!giftIdPattern.test(giftId)) return;
+
+          const current = reservations.get(giftId);
+          if (
+            !current ||
+            (reservation.fields?.["Reservation Status"] === "Reserved" &&
+              current.fields?.["Reservation Status"] !== "Reserved")
+          ) {
+            reservations.set(giftId, reservation);
+          }
         });
       }
       offset = page.offset;
     } while (offset);
   }
-  return blocked;
+  return reservations;
 }
 
 function classifyGift(
   gift: AirtableGift | undefined,
-  blocked: Set<string>
+  reservations: Map<string, AirtableReservation>,
+  email: string
 ): Classification {
   const status = publicStatus(gift?.fields?.Status);
   if (!gift || gift.fields?.Active === false || !status) return "changed";
   if (status === "Purchased") return "purchased";
-  if (status === "Reserved") return "reserved";
-  return blocked.has(gift.id) ? "changed" : "available";
+  if (status === "Reserved") {
+    const reservation = reservations.get(gift.id);
+    const reservationEmail = reservation?.fields?.Email?.trim().toLowerCase();
+    return reservation?.fields?.["Reservation Status"] === "Reserved" &&
+      reservationEmail === email
+      ? "reserved_by_you"
+      : "reserved_by_other";
+  }
+  return reservations.has(gift.id) ? "changed" : "available";
 }
 
 async function reviewGifts(input: BulkInput): Promise<ReviewItem[]> {
-  const [gifts, blocked] = await Promise.all([
+  const [gifts, reservations] = await Promise.all([
     getGiftsByIds(input.giftIds),
-    getBlockingReservationGiftIds(input.giftIds),
+    getBlockingReservations(input.giftIds),
   ]);
   return input.giftIds.map((giftId) => {
     const gift = gifts.get(giftId);
-    const classification = classifyGift(gift, blocked);
+    const classification = classifyGift(gift, reservations, input.email);
     return {
       giftId,
       name: gift?.fields?.["Gift Name"] ?? "Gift",
@@ -353,21 +381,33 @@ async function confirmReservations(input: BulkInput): Promise<ResultItem[]> {
   const results: ResultItem[] = [];
   for (const giftIdChunk of chunks(input.giftIds)) {
     try {
-      const [gifts, blocked] = await Promise.all([
+      const [gifts, reservations] = await Promise.all([
         getGiftsByIds(giftIdChunk),
-        getBlockingReservationGiftIds(giftIdChunk),
+        getBlockingReservations(giftIdChunk),
       ]);
       const available: AirtableGift[] = [];
 
       for (const giftId of giftIdChunk) {
         const gift = gifts.get(giftId);
-        const classification = classifyGift(gift, blocked);
+        const classification = classifyGift(
+          gift,
+          reservations,
+          input.email
+        );
         if (
           input.reviewedClassifications.get(giftId) === "available" &&
           classification === "available" &&
           gift
         ) {
           available.push(gift);
+        } else if (classification === "reserved_by_you") {
+          results.push({
+            giftId,
+            name: gift?.fields?.["Gift Name"] ?? "Gift",
+            outcome: "existing",
+            reason: "reserved_by_you",
+            status: "Reserved",
+          });
         } else {
           results.push(
             skipped(
@@ -421,10 +461,14 @@ export async function POST(request: Request) {
 
   if (input.action === "review") {
     try {
-      const items = await reviewGifts(input);
+      const [items, existingReservations] = await Promise.all([
+        reviewGifts(input),
+        getActiveReservationGiftsForEmail(input.email, input.giftIds),
+      ]);
       return Response.json({
         items,
         eligibleCount: items.filter((item) => item.eligible).length,
+        existingReservations,
       });
     } catch (error) {
       console.error("Bulk reservation review error:", error);
@@ -452,7 +496,7 @@ export async function POST(request: Request) {
     return Response.json({
       items,
       reservedCount,
-      skippedCount: items.length - reservedCount,
+      skippedCount: items.filter((item) => item.outcome === "skipped").length,
     });
   } catch (error) {
     console.error("Bulk reservation confirmation error:", error);

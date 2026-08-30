@@ -11,8 +11,16 @@ import {
 
 type PurchasableStatus = "Available" | "Reserved";
 type CurrentStatus = PurchasableStatus | "Purchased";
+type PurchaseAction = "review" | "confirm";
+type PurchaseClassification =
+  | "available"
+  | "reserved_by_you"
+  | "reserved_by_other"
+  | "purchased"
+  | "changed";
 
 type PurchaseInput = {
+  action: PurchaseAction;
   giftId: string;
   expectedStatus: PurchasableStatus;
   name: string;
@@ -25,6 +33,7 @@ type AirtableGift = {
   id: string;
   fields?: {
     "Gift Name"?: string;
+    Price?: number;
     Status?: string;
     Active?: boolean;
   };
@@ -37,6 +46,7 @@ function parseInput(value: unknown): PurchaseInput | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
 
   const input = value as Record<string, unknown>;
+  const action = input.action;
   const giftId = typeof input.giftId === "string" ? input.giftId.trim() : "";
   const expectedStatus = input.expectedStatus;
   const name = typeof input.name === "string" ? input.name.trim() : "";
@@ -47,6 +57,7 @@ function parseInput(value: unknown): PurchaseInput | null {
   const language: Language = input.language === "en" ? "en" : "es";
 
   if (
+    (action !== "review" && action !== "confirm") ||
     !giftIdPattern.test(giftId) ||
     (expectedStatus !== "Available" && expectedStatus !== "Reserved") ||
     email.length > 254 ||
@@ -57,7 +68,7 @@ function parseInput(value: unknown): PurchaseInput | null {
     return null;
   }
 
-  return { giftId, expectedStatus, name, email, message, language };
+  return { action, giftId, expectedStatus, name, email, message, language };
 }
 
 async function getGift(giftId: string): Promise<AirtableGift> {
@@ -104,6 +115,49 @@ function conflictResponse(
   );
 }
 
+async function reviewPurchase(input: PurchaseInput) {
+  const [gift, activeReservation] = await Promise.all([
+    getGift(input.giftId),
+    findActiveReservationForGift(input.giftId),
+  ]);
+  const status = safeStatus(gift.fields?.Status);
+  let classification: PurchaseClassification = "changed";
+
+  if (gift.fields?.Active !== false && status === "Purchased") {
+    classification = "purchased";
+  } else if (gift.fields?.Active !== false && status === "Reserved") {
+    const reservationEmail =
+      activeReservation?.fields?.Email?.trim().toLowerCase() ?? "";
+    classification =
+      activeReservation && reservationEmail === input.email
+        ? "reserved_by_you"
+        : "reserved_by_other";
+  } else if (gift.fields?.Active !== false && status === "Available") {
+    const blockingReservation = await findBlockingReservationForGift(
+      input.giftId
+    );
+    classification = blockingReservation ? "changed" : "available";
+  }
+
+  return {
+    item: {
+      giftId: input.giftId,
+      name: gift.fields?.["Gift Name"] ?? "Gift",
+      price:
+        typeof gift.fields?.Price === "number" &&
+        Number.isFinite(gift.fields.Price)
+          ? gift.fields.Price
+          : 0,
+      classification,
+      eligible:
+        (classification === "available" &&
+          input.expectedStatus === "Available") ||
+        classification === "reserved_by_you",
+      status,
+    },
+  };
+}
+
 export async function POST(request: Request) {
   let input: PurchaseInput | null = null;
   let language: Language = "es";
@@ -127,6 +181,15 @@ export async function POST(request: Request) {
 
   if (!input) {
     return Response.json({ error: errors.invalidFields }, { status: 400 });
+  }
+
+  if (input.action === "review") {
+    try {
+      return Response.json(await reviewPurchase(input));
+    } catch (error) {
+      console.error("Gift purchase review error:", error);
+      return Response.json({ error: errors.temporary }, { status: 502 });
+    }
   }
 
   if (!tryLockGifts([input.giftId])) {

@@ -41,6 +41,8 @@ type Step = "form" | "reviewing" | "review" | "processing" | "result";
 type BulkPurchaseModalProps = {
   giftIds: string[];
   selectedTotal: number;
+  initialName?: string;
+  initialEmail?: string;
   onClose: () => void;
   onComplete: (items: BulkPurchaseResultItem[]) => void;
 };
@@ -59,6 +61,8 @@ const chfFormatter = new Intl.NumberFormat("de-CH", {
 export default function BulkPurchaseModal({
   giftIds,
   selectedTotal,
+  initialName,
+  initialEmail,
   onClose,
   onComplete,
 }: BulkPurchaseModalProps) {
@@ -215,6 +219,8 @@ export default function BulkPurchaseModal({
 
             <GiftContactFields
               nameInputRef={nameInputRef}
+              defaultName={initialName}
+              defaultEmail={initialEmail}
               labels={t.reservation}
             />
 

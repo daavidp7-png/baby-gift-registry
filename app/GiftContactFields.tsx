@@ -2,6 +2,9 @@ import { type RefObject } from "react";
 
 type GiftContactFieldsProps = {
   nameInputRef: RefObject<HTMLInputElement | null>;
+  defaultName?: string;
+  defaultEmail?: string;
+  defaultMessage?: string;
   labels: {
     name: string;
     email: string;
@@ -12,6 +15,9 @@ type GiftContactFieldsProps = {
 
 export default function GiftContactFields({
   nameInputRef,
+  defaultName,
+  defaultEmail,
+  defaultMessage,
   labels,
 }: GiftContactFieldsProps) {
   return (
@@ -22,6 +28,7 @@ export default function GiftContactFields({
           ref={nameInputRef}
           name="name"
           type="text"
+          defaultValue={defaultName}
           required
           minLength={2}
           maxLength={100}
@@ -35,6 +42,7 @@ export default function GiftContactFields({
         <input
           name="email"
           type="email"
+          defaultValue={defaultEmail}
           required
           maxLength={254}
           autoComplete="email"
@@ -49,6 +57,7 @@ export default function GiftContactFields({
         </span>
         <textarea
           name="message"
+          defaultValue={defaultMessage}
           rows={3}
           maxLength={1000}
           className="resize-none rounded-lg border border-[#d8cec9] bg-white px-3 py-2.5 outline-none focus:border-[#302b29]"
