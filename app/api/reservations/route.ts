@@ -115,7 +115,6 @@ export async function POST(request: Request) {
       "Reservation ID": reservationId,
       "Reservation Status": "Reserved",
       "Reserved Date": new Date().toISOString(),
-      "Gift Record ID": input.giftId,
     };
 
     if (input.message) {
@@ -149,6 +148,12 @@ export async function POST(request: Request) {
     );
 
     if (!createResponse.ok) {
+      const airtableErrorBody = await createResponse.text().catch(() => "");
+      console.error("Airtable reservation creation failed", {
+        status: createResponse.status,
+        statusText: createResponse.statusText,
+        error: airtableErrorBody || "(empty response body)",
+      });
       throw new Error(`Could not create reservation (${createResponse.status})`);
     }
 

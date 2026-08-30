@@ -225,7 +225,7 @@ async function purchaseAvailableChunks(gifts: AirtableGift[], input: BulkInput) 
           "Gift Reservation": `${gift.fields?.["Gift Name"] ?? "Gift"} — ${input.name}`,
           Gift: [gift.id], "Reserved By": input.name, Email: input.email,
           "Reservation ID": randomUUID(), "Reservation Status": "Purchased",
-          "Purchased Date": new Date().toISOString(), "Gift Record ID": gift.id,
+          "Purchased Date": new Date().toISOString(),
         };
         if (input.message) fields.Message = input.message;
         return fields;

@@ -157,7 +157,6 @@ export async function POST(request: Request) {
         "Reservation ID": reservationId,
         "Reservation Status": "Purchased",
         "Purchased Date": purchasedDate,
-        "Gift Record ID": input.giftId,
       };
 
       if (input.message) {
