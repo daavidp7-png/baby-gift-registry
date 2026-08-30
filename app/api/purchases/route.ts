@@ -1,7 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { translations, type Language } from "../../i18n/translations";
 import { airtableRequest } from "../../lib/airtable";
+import { invalidateGiftCache } from "../../lib/giftCache";
 import { tryLockGifts, unlockGifts } from "../../lib/giftMutationLock";
+import {
+  findActiveReservationForGift,
+  findBlockingReservationForGift,
+} from "../../lib/reservationQueries";
 
 type PurchasableStatus = "Available" | "Reserved";
 type CurrentStatus = PurchasableStatus | "Purchased";
@@ -22,22 +27,6 @@ type AirtableGift = {
     Status?: string;
     Active?: boolean;
   };
-};
-
-type AirtableReservation = {
-  id: string;
-  fields?: {
-    Gift?: string[];
-    Email?: string;
-    "Gift Record ID"?: string;
-    "Reservation Status"?: string;
-    "Reserved Date"?: string;
-  };
-};
-
-type ReservationList = {
-  records?: AirtableReservation[];
-  offset?: string;
 };
 
 const giftIdPattern = /^rec[a-zA-Z0-9]{14}$/;
@@ -94,54 +83,6 @@ function safeStatus(status?: string): CurrentStatus | undefined {
   return undefined;
 }
 
-async function findActiveReservation(
-  giftId: string
-): Promise<AirtableReservation | null> {
-  const records: AirtableReservation[] = [];
-  let offset: string | undefined;
-
-  do {
-    const search = new URLSearchParams({
-      pageSize: "100",
-      filterByFormula: "{Reservation Status}='Reserved'",
-    });
-
-    if (offset) search.set("offset", offset);
-
-    const response = await airtableRequest(
-      `${encodeURIComponent("Gift Reservations")}?${search.toString()}`
-    );
-
-    if (!response.ok) {
-      throw new Error(`Could not read reservations (${response.status})`);
-    }
-
-    const page = (await response.json()) as ReservationList;
-    records.push(...(page.records ?? []));
-    offset = page.offset;
-  } while (offset);
-
-  const exactMatches = records.filter(
-    (record) =>
-      record.fields?.["Gift Record ID"] === giftId &&
-      record.fields?.["Reservation Status"] === "Reserved"
-  );
-  const linkedMatches = records.filter(
-    (record) =>
-      record.fields?.Gift?.includes(giftId) &&
-      record.fields?.["Reservation Status"] === "Reserved"
-  );
-  const matches = exactMatches.length > 0 ? exactMatches : linkedMatches;
-
-  return (
-    matches.sort((a, b) =>
-      (b.fields?.["Reserved Date"] ?? "").localeCompare(
-        a.fields?.["Reserved Date"] ?? ""
-      )
-    )[0] ?? null
-  );
-}
-
 function conflictResponse(
   language: Language,
   status?: string
@@ -195,16 +136,16 @@ export async function POST(request: Request) {
   }
 
   try {
-    const gift = await getGift(input.giftId);
-
-    if (
-      gift.fields?.Active === false ||
-      gift.fields?.Status !== input.expectedStatus
-    ) {
-      return conflictResponse(language, gift.fields?.Status);
-    }
-
     if (input.expectedStatus === "Available") {
+      const gift = await getGift(input.giftId);
+
+      if (
+        gift.fields?.Active === false ||
+        gift.fields?.Status !== "Available"
+      ) {
+        return conflictResponse(language, gift.fields?.Status);
+      }
+
       const reservationId = randomUUID();
       const giftName = gift.fields?.["Gift Name"] ?? "Gift";
       const purchasedDate = new Date().toISOString();
@@ -221,6 +162,19 @@ export async function POST(request: Request) {
 
       if (input.message) {
         reservationFields.Message = input.message;
+      }
+
+      const [latestGift, existingReservation] = await Promise.all([
+        getGift(input.giftId),
+        findBlockingReservationForGift(input.giftId),
+      ]);
+
+      if (
+        latestGift.fields?.Active === false ||
+        latestGift.fields?.Status !== "Available" ||
+        existingReservation
+      ) {
+        return conflictResponse(language, latestGift.fields?.Status);
       }
 
       const createResponse = await airtableRequest(
@@ -247,20 +201,38 @@ export async function POST(request: Request) {
       );
 
       if (!updateGiftResponse.ok) {
-        await airtableRequest(
-          `${encodeURIComponent("Gift Reservations")}/${purchaseRecord.id}`,
-          { method: "DELETE" }
-        ).catch(() => undefined);
+        const giftAfterFailure = await getGift(input.giftId).catch(() => null);
+
+        if (giftAfterFailure && giftAfterFailure.fields?.Status !== "Purchased") {
+          await airtableRequest(
+            `${encodeURIComponent("Gift Reservations")}/${purchaseRecord.id}`,
+            { method: "DELETE" }
+          ).catch(() => undefined);
+        }
         throw new Error(`Could not update gift (${updateGiftResponse.status})`);
       }
 
+      invalidateGiftCache();
       return Response.json({ ok: true, status: "Purchased" });
     }
 
-    const reservation = await findActiveReservation(input.giftId);
+    const [gift, reservation] = await Promise.all([
+      getGift(input.giftId),
+      findActiveReservationForGift(input.giftId),
+    ]);
+
+    if (
+      gift.fields?.Active === false ||
+      gift.fields?.Status !== "Reserved"
+    ) {
+      return conflictResponse(language, gift.fields?.Status);
+    }
 
     if (!reservation) {
-      throw new Error("No active reservation found for reserved gift");
+      return Response.json(
+        { error: errors.stale, code: "stale_status", currentStatus: "Reserved" },
+        { status: 409 }
+      );
     }
 
     const storedEmail = reservation.fields?.Email?.trim().toLowerCase() ?? "";
@@ -272,7 +244,10 @@ export async function POST(request: Request) {
       );
     }
 
-    const latestGift = await getGift(input.giftId);
+    const [latestGift, latestReservation] = await Promise.all([
+      getGift(input.giftId),
+      findActiveReservationForGift(input.giftId),
+    ]);
 
     if (
       latestGift.fields?.Active === false ||
@@ -281,8 +256,22 @@ export async function POST(request: Request) {
       return conflictResponse(language, latestGift.fields?.Status);
     }
 
+    const latestEmail =
+      latestReservation?.fields?.Email?.trim().toLowerCase() ?? "";
+    if (
+      !latestReservation ||
+      latestReservation.id !== reservation.id ||
+      !latestEmail ||
+      latestEmail !== input.email
+    ) {
+      return Response.json(
+        { error: errors.stale, code: "stale_status", currentStatus: "Reserved" },
+        { status: 409 }
+      );
+    }
+
     const updateReservationResponse = await airtableRequest(
-      `${encodeURIComponent("Gift Reservations")}/${reservation.id}`,
+      `${encodeURIComponent("Gift Reservations")}/${latestReservation.id}`,
       {
         method: "PATCH",
         body: JSON.stringify({
@@ -309,29 +298,34 @@ export async function POST(request: Request) {
     );
 
     if (!updateGiftResponse.ok) {
-      const rollbackResponse = await airtableRequest(
-        `${encodeURIComponent("Gift Reservations")}/${reservation.id}`,
-        {
-          method: "PATCH",
-          body: JSON.stringify({
-            fields: {
-              "Reservation Status": "Reserved",
-              "Purchased Date": null,
-            },
-          }),
-        }
-      ).catch(() => null);
+      const giftAfterFailure = await getGift(input.giftId).catch(() => null);
+      const rollbackResponse =
+        giftAfterFailure?.fields?.Status === "Reserved"
+          ? await airtableRequest(
+              `${encodeURIComponent("Gift Reservations")}/${latestReservation.id}`,
+              {
+                method: "PATCH",
+                body: JSON.stringify({
+                  fields: {
+                    "Reservation Status": "Reserved",
+                    "Purchased Date": null,
+                  },
+                }),
+              }
+            ).catch(() => null)
+          : null;
 
-      if (!rollbackResponse?.ok) {
+      if (giftAfterFailure?.fields?.Status === "Reserved" && !rollbackResponse?.ok) {
         console.error("Could not roll back reservation after gift update failure", {
           giftId: input.giftId,
-          reservationId: reservation.id,
+          reservationId: latestReservation.id,
         });
       }
 
       throw new Error(`Could not update gift (${updateGiftResponse.status})`);
     }
 
+    invalidateGiftCache();
     return Response.json({ ok: true, status: "Purchased" });
   } catch (error) {
     console.error("Gift purchase error:", error);

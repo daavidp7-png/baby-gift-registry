@@ -1,7 +1,9 @@
 import { randomUUID } from "node:crypto";
 import { translations, type Language } from "../../i18n/translations";
 import { airtableRequest } from "../../lib/airtable";
+import { invalidateGiftCache } from "../../lib/giftCache";
 import { tryLockGifts, unlockGifts } from "../../lib/giftMutationLock";
+import { findBlockingReservationForGift } from "../../lib/reservationQueries";
 
 type ReservationInput = {
   giftId: string;
@@ -120,6 +122,24 @@ export async function POST(request: Request) {
       reservationFields.Message = input.message;
     }
 
+    const [latestGiftResponse, existingReservation] = await Promise.all([
+      airtableRequest(`${encodeURIComponent("Gifts")}/${input.giftId}`),
+      findBlockingReservationForGift(input.giftId),
+    ]);
+
+    if (!latestGiftResponse.ok) {
+      throw new Error(`Could not re-read gift (${latestGiftResponse.status})`);
+    }
+
+    const latestGift = (await latestGiftResponse.json()) as AirtableGift;
+    if (
+      latestGift.fields?.Status !== "Available" ||
+      latestGift.fields.Active === false ||
+      existingReservation
+    ) {
+      return Response.json({ error: errors.unavailable }, { status: 409 });
+    }
+
     const createResponse = await airtableRequest(
       encodeURIComponent("Gift Reservations"),
       {
@@ -144,13 +164,23 @@ export async function POST(request: Request) {
     );
 
     if (!updateGiftResponse.ok) {
-      await airtableRequest(
-        `${encodeURIComponent("Gift Reservations")}/${reservationRecordId}`,
-        { method: "DELETE" }
-      ).catch(() => undefined);
+      const giftAfterFailure = await airtableRequest(
+        `${encodeURIComponent("Gifts")}/${input.giftId}`
+      ).catch(() => null);
+      const currentGift = giftAfterFailure?.ok
+        ? ((await giftAfterFailure.json()) as AirtableGift)
+        : null;
+
+      if (currentGift && currentGift.fields?.Status !== "Reserved") {
+        await airtableRequest(
+          `${encodeURIComponent("Gift Reservations")}/${reservationRecordId}`,
+          { method: "DELETE" }
+        ).catch(() => undefined);
+      }
       throw new Error(`Could not update gift (${updateGiftResponse.status})`);
     }
 
+    invalidateGiftCache();
     return Response.json({ ok: true, reservationId });
   } catch (error) {
     console.error("Gift reservation error:", error);

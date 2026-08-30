@@ -1,5 +1,7 @@
 import { type GiftRecord } from "../GiftGrid";
+import { unstable_cache } from "next/cache";
 import { airtableRequest } from "./airtable";
+import { GIFTS_CACHE_SECONDS, GIFTS_CACHE_TAG } from "./giftCache";
 import { createImageProxyUrl } from "./imageProxy";
 
 async function getImageFromProductUrl(
@@ -323,20 +325,32 @@ async function getImageFromProductUrl(
   }
 }
 
-export async function getGifts(): Promise<GiftRecord[]> {
-  const response = await airtableRequest(encodeURIComponent("Gifts"));
+type GiftListPage = {
+  records?: GiftRecord[];
+  offset?: string;
+};
 
-  const data = await response.json();
+async function loadGifts(): Promise<GiftRecord[]> {
+  const records: GiftRecord[] = [];
+  let offset: string | undefined;
 
-  if (!response.ok) {
-    console.error("Airtable Gifts error:", data);
+  do {
+    const search = new URLSearchParams({ pageSize: "100" });
+    if (offset) search.set("offset", offset);
 
-    throw new Error(
-      `Could not load gifts from Airtable (${response.status})`
+    const response = await airtableRequest(
+      `${encodeURIComponent("Gifts")}?${search.toString()}`
     );
-  }
+    const data = (await response.json()) as GiftListPage;
 
-  const records = (data.records ?? []) as GiftRecord[];
+    if (!response.ok) {
+      console.error("Airtable Gifts error:", data);
+      throw new Error(`Could not load gifts from Airtable (${response.status})`);
+    }
+
+    records.push(...(data.records ?? []));
+    offset = data.offset;
+  } while (offset);
 
 const activeRecords = records
   .filter((gift) => gift.fields.Active !== false)
@@ -391,3 +405,8 @@ const recordsWithImages = await Promise.all(
 
 return recordsWithImages;
 }
+
+export const getGifts = unstable_cache(loadGifts, [GIFTS_CACHE_TAG], {
+  revalidate: GIFTS_CACHE_SECONDS,
+  tags: [GIFTS_CACHE_TAG],
+});
