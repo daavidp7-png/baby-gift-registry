@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { translations, type Language } from "../../i18n/translations";
 import { airtableRequest } from "../../lib/airtable";
+import { sendPurchaseConfirmation } from "../../lib/email";
 import { invalidateGiftCache } from "../../lib/giftCache";
 import { tryLockGifts, unlockGifts } from "../../lib/giftMutationLock";
 import {
@@ -212,6 +213,12 @@ export async function POST(request: Request) {
       }
 
       invalidateGiftCache();
+      await sendPurchaseConfirmation({
+        to: input.email,
+        giftName,
+        language: input.language,
+        idempotencyKey: reservationId,
+      });
       return Response.json({ ok: true, status: "Purchased" });
     }
 
@@ -325,6 +332,12 @@ export async function POST(request: Request) {
     }
 
     invalidateGiftCache();
+    await sendPurchaseConfirmation({
+      to: input.email,
+      giftName: latestGift.fields?.["Gift Name"] ?? "Gift",
+      language: input.language,
+      idempotencyKey: latestReservation.id,
+    });
     return Response.json({ ok: true, status: "Purchased" });
   } catch (error) {
     console.error("Gift purchase error:", error);

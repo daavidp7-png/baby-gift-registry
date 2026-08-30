@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { translations, type Language } from "../../i18n/translations";
 import { airtableRequest } from "../../lib/airtable";
+import { sendReservationConfirmation } from "../../lib/email";
 import { invalidateGiftCache } from "../../lib/giftCache";
 import { tryLockGifts, unlockGifts } from "../../lib/giftMutationLock";
 import { findBlockingReservationForGift } from "../../lib/reservationQueries";
@@ -186,6 +187,12 @@ export async function POST(request: Request) {
     }
 
     invalidateGiftCache();
+    await sendReservationConfirmation({
+      to: input.email,
+      giftName,
+      language: input.language,
+      idempotencyKey: reservationId,
+    });
     return Response.json({ ok: true, reservationId });
   } catch (error) {
     console.error("Gift reservation error:", error);

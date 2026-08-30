@@ -1,6 +1,7 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { translations, type Language } from "../../../i18n/translations";
 import { airtableRequest } from "../../../lib/airtable";
+import { sendBulkPurchaseConfirmation } from "../../../lib/email";
 import { invalidateGiftCache } from "../../../lib/giftCache";
 import { tryLockGifts, unlockGifts } from "../../../lib/giftMutationLock";
 
@@ -406,8 +407,24 @@ export async function POST(request: Request) {
   if (!tryLockGifts(input.giftIds)) return Response.json({ error: errors.inProgress }, { status: 409 });
   try {
     const items = await confirmGifts(input);
-    const purchasedCount = items.filter((item) => item.outcome === "purchased").length;
-    if (purchasedCount > 0) invalidateGiftCache();
+    const purchasedItems = items.filter((item) => item.outcome === "purchased");
+    const purchasedCount = purchasedItems.length;
+    if (purchasedCount > 0) {
+      invalidateGiftCache();
+      const emailIdempotencyKey = createHash("sha256")
+        .update(
+          [input.email, ...purchasedItems.map((item) => item.giftId).sort()].join(
+            "|"
+          )
+        )
+        .digest("hex");
+      await sendBulkPurchaseConfirmation({
+        to: input.email,
+        giftNames: purchasedItems.map((item) => item.name),
+        language: input.language,
+        idempotencyKey: emailIdempotencyKey,
+      });
+    }
     return Response.json({ items, purchasedCount, skippedCount: items.length - purchasedCount });
   } catch (error) {
     console.error("Bulk purchase confirmation error:", error);
