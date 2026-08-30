@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import ArrivalCountdown from "./ArrivalCountdown";
 import { useLanguage } from "./i18n/LanguageProvider";
 
 export default function HomePage() {
@@ -42,6 +43,8 @@ export default function HomePage() {
         <p className="mt-6 max-w-md text-base leading-7 text-[#796d67] sm:text-lg">
           {t.home.description}
         </p>
+
+        <ArrivalCountdown />
 
         <button
           type="button"

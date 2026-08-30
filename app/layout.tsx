@@ -11,8 +11,16 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://alinaperezurrutia.com"),
   title: "Bienvenida, pequeña",
   description: "Un pequeño espacio creado con amor mientras esperamos tu llegada.",
+  openGraph: {
+    title: "Lista de regalos de Alina",
+    description:
+      "Un pequeño espacio creado con amor mientras esperamos tu llegada.",
+    url: "https://alinaperezurrutia.com",
+    type: "website",
+  },
 };
 
 export default function RootLayout({
