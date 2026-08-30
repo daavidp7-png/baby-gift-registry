@@ -1,5 +1,9 @@
 import { randomUUID } from "node:crypto";
-import { translations, type Language } from "../../../i18n/translations";
+import {
+  normalizeLanguage,
+  translations,
+  type Language,
+} from "../../../i18n/translations";
 import { airtableRequest } from "../../../lib/airtable";
 import { sendBulkReservationConfirmation } from "../../../lib/email";
 import { invalidateGiftCache } from "../../../lib/giftCache";
@@ -86,7 +90,7 @@ function parseInput(value: unknown): BulkInput | null {
   const email =
     typeof raw.email === "string" ? raw.email.trim().toLowerCase() : "";
   const message = typeof raw.message === "string" ? raw.message.trim() : "";
-  const language: Language = raw.language === "en" ? "en" : "es";
+  const language = normalizeLanguage(raw.language);
   const reviewedClassifications = new Map<string, Classification>();
 
   if (Array.isArray(raw.reviewedItems)) {
@@ -245,7 +249,9 @@ async function reviewGifts(input: BulkInput): Promise<ReviewItem[]> {
     const classification = classifyGift(gift, reservations, input.email);
     return {
       giftId,
-      name: gift?.fields?.["Gift Name"] ?? "Gift",
+      name:
+        gift?.fields?.["Gift Name"] ??
+        translations[input.language].gifts.fallbackName,
       classification,
       eligible: classification === "available",
       status: publicStatus(gift?.fields?.Status),
@@ -303,11 +309,13 @@ async function batchDeleteReservations(ids: string[]) {
 function skipped(
   gift: AirtableGift | undefined,
   giftId: string,
-  reason: ResultItem["reason"]
+  reason: ResultItem["reason"],
+  language: Language
 ): ResultItem {
   return {
     giftId,
-    name: gift?.fields?.["Gift Name"] ?? "Gift",
+    name:
+      gift?.fields?.["Gift Name"] ?? translations[language].gifts.fallbackName,
     outcome: "skipped",
     reason,
     status: publicStatus(gift?.fields?.Status),
@@ -323,7 +331,7 @@ async function reserveAvailableChunks(gifts: AirtableGift[], input: BulkInput) {
       created = await batchCreateReservations(
         group.map((gift) => {
           const fields: Record<string, unknown> = {
-            "Gift Reservation": `${gift.fields?.["Gift Name"] ?? "Gift"} — ${input.name}`,
+            "Gift Reservation": `${gift.fields?.["Gift Name"] ?? translations[input.language].gifts.fallbackName} — ${input.name}`,
             Gift: [gift.id],
             "Reserved By": input.name,
             Email: input.email,
@@ -342,7 +350,9 @@ async function reserveAvailableChunks(gifts: AirtableGift[], input: BulkInput) {
       results.push(
         ...group.map((gift) => ({
           giftId: gift.id,
-          name: gift.fields?.["Gift Name"] ?? "Gift",
+          name:
+            gift.fields?.["Gift Name"] ??
+            translations[input.language].gifts.fallbackName,
           outcome: "reserved" as const,
           status: "Reserved" as const,
         }))
@@ -370,7 +380,9 @@ async function reserveAvailableChunks(gifts: AirtableGift[], input: BulkInput) {
       }
       console.error("Bulk reservation chunk error:", error);
       results.push(
-        ...group.map((gift) => skipped(gift, gift.id, "error"))
+        ...group.map((gift) =>
+          skipped(gift, gift.id, "error", input.language)
+        )
       );
     }
   }
@@ -403,7 +415,9 @@ async function confirmReservations(input: BulkInput): Promise<ResultItem[]> {
         } else if (classification === "reserved_by_you") {
           results.push({
             giftId,
-            name: gift?.fields?.["Gift Name"] ?? "Gift",
+            name:
+              gift?.fields?.["Gift Name"] ??
+              translations[input.language].gifts.fallbackName,
             outcome: "existing",
             reason: "reserved_by_you",
             status: "Reserved",
@@ -413,7 +427,8 @@ async function confirmReservations(input: BulkInput): Promise<ResultItem[]> {
             skipped(
               gift,
               giftId,
-              classification === "available" ? "changed" : classification
+              classification === "available" ? "changed" : classification,
+              input.language
             )
           );
         }
@@ -426,7 +441,9 @@ async function confirmReservations(input: BulkInput): Promise<ResultItem[]> {
         error,
       });
       results.push(
-        ...giftIdChunk.map((giftId) => skipped(undefined, giftId, "error"))
+        ...giftIdChunk.map((giftId) =>
+          skipped(undefined, giftId, "error", input.language)
+        )
       );
     }
   }
@@ -444,7 +461,7 @@ export async function POST(request: Request) {
       !Array.isArray(body) &&
       "language" in body
     ) {
-      language = body.language === "en" ? "en" : "es";
+      language = normalizeLanguage(body.language);
     }
     input = parseInput(body);
   } catch {
@@ -463,7 +480,11 @@ export async function POST(request: Request) {
     try {
       const [items, existingReservations] = await Promise.all([
         reviewGifts(input),
-        getActiveReservationGiftsForEmail(input.email, input.giftIds),
+        getActiveReservationGiftsForEmail(
+          input.email,
+          translations[input.language].gifts.fallbackName,
+          input.giftIds
+        ),
       ]);
       return Response.json({
         items,

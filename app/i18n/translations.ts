@@ -1,8 +1,17 @@
-export type Language = "es" | "en";
+export type Language = "es" | "ca" | "en";
+
+export function normalizeLanguage(value: unknown): Language {
+  return value === "ca" || value === "en" ? value : "es";
+}
 
 export const translations = {
   es: {
-    language: { label: "Idioma", spanish: "Español", english: "Inglés" },
+    language: {
+      label: "Idioma",
+      spanish: "Español",
+      catalan: "Catalán",
+      english: "Inglés",
+    },
     home: {
       title: "Bienvenida, pequeña",
       description: "Un pequeño espacio creado con amor mientras esperamos tu llegada.",
@@ -272,8 +281,292 @@ export const translations = {
       },
     },
   },
+  ca: {
+    language: {
+      label: "Idioma",
+      spanish: "Espanyol",
+      catalan: "Català",
+      english: "Anglès",
+    },
+    home: {
+      title: "Benvinguda, petita",
+      description: "Un petit espai creat amb amor mentre esperem la teva arribada.",
+      countdownIntro: "Falten per a la teva arribada",
+      days: "Dies",
+      hours: "Hores",
+      minutes: "Minuts",
+      seconds: "Segons",
+      arrived: "Ja ets aquí ♡",
+      enter: "Entrar",
+      loading: "Carregant…",
+    },
+    dp: {
+      eyebrow: "Àrea privada",
+      title: "Actualitzar la llista de regals",
+      description:
+        "Introdueix la contrasenya per invalidar la memòria cau compartida de regals.",
+      password: "Contrasenya",
+      refresh: "Actualitzar la llista des d’Airtable",
+      refreshing: "Actualitzant…",
+      success:
+        "Llista actualitzada. La pròxima càrrega obtindrà les dades més recents d’Airtable.",
+      unauthorized: "Contrasenya incorrecta.",
+      unavailable: "L’actualització no està disponible en aquest moment.",
+      genericError: "No s’ha pogut actualitzar la llista. Torna-ho a intentar.",
+    },
+    giftRegistryInfo: {
+      eyebrow: "Llista de regals",
+      title: "Com funciona la llista?",
+      close: "Tancar la informació sobre la llista de regals",
+      introduction:
+        "Si vols fer-nos un d’aquests regals, el pots reservar mentre decideixes on comprar-lo o marcar-lo com a comprat quan ja l’hagis adquirit.",
+      purchaseNotice: "La compra no es fa a través d’aquesta pàgina.",
+      purchaseDetails:
+        "Pots utilitzar “Veure regal” per anar a la botiga que hem indicat o comprar-lo on tu prefereixis.",
+      closing:
+        "En reservar-lo o marcar-lo com a comprat, ens ajudes a mantenir la llista actualitzada i evitar regals duplicats. ♡",
+      understood: "Entès",
+    },
+    gifts: {
+      eyebrow: "Llista de regals",
+      title: "La llista de regals de la nostra petita",
+      description:
+        "Estem molt il·lusionats per donar la benvinguda a la nostra petita. Si et ve de gust regalar-li alguna cosa, aquí trobaràs algunes de les coses que hem triat per a ella.",
+      empty: "Encara no hi ha regals disponibles.",
+      fallbackName: "Regal",
+      multiGiftHintTitle: "Vols reservar o comprar diversos regals?",
+      multiGiftHintBody:
+        "Marca els teus favorits amb ♡ i podràs gestionar-los junts des de Els meus favorits.",
+      sectionNavigation: "Seccions de regals",
+      backToTop: "Tornar a dalt",
+      filters: {
+        open: "Filtrar i ordenar",
+        close: "Tancar els filtres",
+        search: "Cercar",
+        searchPlaceholder: "Cercar regal...",
+        clearSearch: "Esborrar la cerca",
+        noResults: "No hem trobat cap regal que coincideixi amb la teva cerca.",
+        sortBy: "Ordenar per",
+        recommended: "Recomanats",
+        priceLowHigh: "Preu: de menor a major",
+        priceHighLow: "Preu: de major a menor",
+        price: "Preu",
+        category: "Categoria",
+        minimumPrice: "Preu mínim en francs suïssos",
+        maximumPrice: "Preu màxim en francs suïssos",
+        show: "Mostrar regals",
+        clear: "Esborrar els filtres",
+      },
+      imageUnavailable: "Imatge no disponible",
+      featured: "Destacat",
+      view: "Veure regal",
+      reserve: "Reservar",
+      seeMore: "Veure més",
+      seeLess: "Veure menys",
+      sections: {
+        available: "Disponibles",
+        reserved: "Reservats",
+        purchased: "Comprats",
+      },
+      statuses: {
+        available: "Disponible",
+        reserved: "Reservat",
+        purchased: "Comprat",
+      },
+    },
+    favorites: {
+      eyebrow: "Llista de regals",
+      title: "Els meus favorits",
+      description: "Els regals que has desat per tornar-los a veure fàcilment.",
+      navigation: "Veure favorits",
+      add: "Afegir a favorits",
+      remove: "Treure de favorits",
+      empty: "Encara no has desat cap regal com a favorit.",
+      addedNoticeTitle: "Afegit a favorits.",
+      addedNoticeBody:
+        "Pots seleccionar diversos regals i comprar-los junts des de Els meus favorits.",
+      closeNotice: "Tancar l’avís de favorits",
+      returnToGifts: "Tornar a la llista de regals",
+      recovery: {
+        title: "Tens reserves?",
+        description:
+          "Introdueix el correu electrònic que vas utilitzar en fer la reserva per recuperar els regals que vas reservar anteriorment.",
+        placeholder: "tu@email.com",
+        submit: "Recuperar les meves reserves",
+        submitting: "Recuperant reserves…",
+        helper: "Mostrarem els regals associats a aquest correu electrònic.",
+        recoveredOne: "1 reserva recuperada",
+        recoveredMany: "{count} reserves recuperades",
+        recoveredDescription:
+          "Les hem afegit a aquesta vista perquè puguis gestionar-les juntament amb els teus favorits.",
+        recoveredFor: "Reserves recuperades per a {email}",
+        changeEmail: "Canviar el correu electrònic",
+        noResults: "No hem trobat reserves associades a aquest correu electrònic.",
+        errors: {
+          invalid: "Introdueix una adreça de correu electrònic vàlida.",
+          temporary:
+            "No es poden recuperar les reserves en aquest moment. Torna-ho a intentar.",
+        },
+      },
+    },
+    reservation: {
+      eyebrow: "Reserva de regal",
+      close: "Tancar el formulari de reserva",
+      successTitle: "Regal reservat!",
+      successMessage: "Gràcies. Hem desat la teva reserva.",
+      addedToReservations: "Se t’afegirà aquest regal a les teves reserves.",
+      existingHeading: "Ja tens reservats:",
+      done: "Fet",
+      name: "El teu nom",
+      email: "Correu electrònic",
+      message: "Missatge",
+      optional: "(opcional)",
+      cancel: "Cancel·lar",
+      submit: "Reservar regal",
+      submitting: "Reservant…",
+      errors: {
+        generic: "No s’ha pogut reservar aquest regal.",
+        invalidRequest: "Sol·licitud no vàlida.",
+        invalidFields: "Revisa els camps del formulari i torna-ho a intentar.",
+        inProgress:
+          "Aquest regal s’està reservant en aquest moment. Torna-ho a intentar.",
+        unavailable: "Aquest regal ja no està disponible.",
+        temporary:
+          "Les reserves no estan disponibles temporalment. Torna-ho a intentar.",
+      },
+    },
+    purchase: {
+      eyebrow: "Compra de regal",
+      close: "Tancar la confirmació de compra",
+      markAsPurchased: "Marcar com a comprat",
+      availableExplanation:
+        "Introdueix les teves dades per marcar aquest regal com a comprat.",
+      reservedExplanation:
+        "Introdueix el correu electrònic utilitzat per reservar aquest regal.",
+      email: "Correu electrònic de la reserva",
+      cancel: "Cancel·lar",
+      confirm: "Confirmar compra",
+      reviewTitle: "Revisió de la compra",
+      purchaseTotal: "Total de la compra",
+      submitting: "Marcant com a comprat…",
+      successTitle: "Regal marcat com a comprat!",
+      successMessage: "Gràcies. Hem registrat la teva compra.",
+      done: "Fet",
+      errors: {
+        generic: "No s’ha pogut marcar aquest regal com a comprat.",
+        invalidRequest: "Sol·licitud no vàlida.",
+        invalidFields: "Revisa les dades i torna-ho a intentar.",
+        incorrectEmail:
+          "Aquest correu electrònic no coincideix amb l’utilitzat per reservar aquest regal.",
+        alreadyPurchased: "Aquest regal ja ha estat comprat.",
+        stale: "L’estat d’aquest regal ha canviat. Hem actualitzat la llista.",
+        inProgress:
+          "Aquest regal s’està actualitzant en aquest moment. Torna-ho a intentar.",
+        temporary:
+          "No es pot actualitzar el regal en aquest moment. Torna-ho a intentar.",
+      },
+    },
+    bulkPurchase: {
+      eyebrow: "Compra de favorits",
+      title: "Comprar els regals seleccionats",
+      close: "Tancar la compra dels regals seleccionats",
+      purchaseSelected: "Comprar seleccionats",
+      selectAvailable: "Seleccionar disponibles",
+      deselectAll: "Desseleccionar-los tots",
+      selectGift: "Seleccionar regal",
+      selected: "seleccionats",
+      intro:
+        "Introdueix les teves dades una sola vegada. Comprovarem quins regals es poden incloure abans de fer cap canvi.",
+      selectedTotal: "Total seleccionat",
+      purchaseTotal: "Total a comprar",
+      reviewAction: "Revisar compra",
+      reviewing: "Comprovant regals…",
+      reviewTitle: "Revisió de la compra",
+      eligibleOne: "Pots comprar 1 regal.",
+      eligibleMany: "Pots comprar {count} regals.",
+      available: "Disponible",
+      reservedByYou: "Reservat per tu",
+      reservedByOther: "Reservat per una altra persona",
+      alreadyPurchased: "Ja comprat",
+      availabilityChanged: "Disponibilitat modificada",
+      reservedByOtherMessage:
+        "Aquest regal està reservat per una altra persona i no es pot incloure en la compra.",
+      noEligible: "Cap dels regals seleccionats es pot comprar ara.",
+      back: "Tornar",
+      confirm: "Confirmar compra",
+      processing: "Processant la compra…",
+      resultTitle: "Resultat de la compra",
+      purchasedOne: "1 regal s’ha marcat com a comprat.",
+      purchasedMany: "{count} regals s’han marcat com a comprats.",
+      skippedOne:
+        "1 regal no s’ha pogut processar perquè la seva disponibilitat ha canviat.",
+      skippedMany:
+        "{count} regals no s’han pogut processar perquè la seva disponibilitat ha canviat.",
+      done: "Fet",
+      errors: {
+        generic: "No s’ha pogut processar la compra seleccionada.",
+        invalidRequest: "Sol·licitud no vàlida.",
+        invalidFields: "Revisa els camps del formulari i torna-ho a intentar.",
+        inProgress:
+          "Un d’aquests regals s’està actualitzant. Torna-ho a intentar.",
+        temporary:
+          "La compra no està disponible temporalment. Torna-ho a intentar.",
+      },
+    },
+    bulkReservation: {
+      eyebrow: "Reserva de favorits",
+      title: "Reservar els regals seleccionats",
+      close: "Tancar la reserva dels regals seleccionats",
+      reserveSelected: "Reservar seleccionats",
+      intro:
+        "Introdueix les teves dades una sola vegada. Comprovarem quins regals continuen disponibles abans de fer cap canvi.",
+      reviewAction: "Revisar reserva",
+      reviewing: "Comprovant regals…",
+      reviewTitle: "Revisió de la reserva",
+      eligibleOne: "Pots reservar 1 regal.",
+      eligibleMany: "Pots reservar {count} regals.",
+      newOne: "Se t’afegirà 1 regal a les teves reserves.",
+      newMany: "Se t’afegiran {count} regals a les teves reserves.",
+      alreadyYoursOne: "1 regal seleccionat ja està reservat per tu.",
+      alreadyYoursMany:
+        "{count} regals seleccionats ja estan reservats per tu.",
+      allAlreadyYours:
+        "Tots els regals seleccionats ja estan reservats per tu.",
+      available: "Disponible",
+      alreadyReserved: "Ja reservat",
+      alreadyPurchased: "Ja comprat",
+      availabilityChanged: "Disponibilitat modificada",
+      noLongerAvailable: "Ja no estava disponible",
+      noEligible: "Cap dels regals seleccionats es pot reservar ara.",
+      back: "Tornar",
+      confirm: "Confirmar reserva",
+      processing: "Reservant regals…",
+      resultTitle: "Resultat de la reserva",
+      reservedOne: "1 regal reservat.",
+      reservedMany: "{count} regals reservats.",
+      skippedOne:
+        "1 regal no s’ha pogut reservar perquè ja no estava disponible.",
+      skippedMany:
+        "{count} regals no s’han pogut reservar perquè ja no estaven disponibles.",
+      done: "Fet",
+      errors: {
+        generic: "No s’ha pogut processar la reserva seleccionada.",
+        invalidRequest: "Sol·licitud no vàlida.",
+        invalidFields: "Revisa els camps del formulari i torna-ho a intentar.",
+        inProgress:
+          "Un d’aquests regals s’està actualitzant. Torna-ho a intentar.",
+        temporary:
+          "La reserva no està disponible temporalment. Torna-ho a intentar.",
+      },
+    },
+  },
   en: {
-    language: { label: "Language", spanish: "Spanish", english: "English" },
+    language: {
+      label: "Language",
+      spanish: "Spanish",
+      catalan: "Catalan",
+      english: "English",
+    },
     home: {
       title: "Welcome, little one",
       description: "A little space created with love while we wait for you.",

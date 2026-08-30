@@ -1,5 +1,9 @@
 import { randomUUID } from "node:crypto";
-import { translations, type Language } from "../../i18n/translations";
+import {
+  normalizeLanguage,
+  translations,
+  type Language,
+} from "../../i18n/translations";
 import { airtableRequest } from "../../lib/airtable";
 import { sendPurchaseConfirmation } from "../../lib/email";
 import { invalidateGiftCache } from "../../lib/giftCache";
@@ -54,7 +58,7 @@ function parseInput(value: unknown): PurchaseInput | null {
     typeof input.email === "string" ? input.email.trim().toLowerCase() : "";
   const message =
     typeof input.message === "string" ? input.message.trim() : "";
-  const language: Language = input.language === "en" ? "en" : "es";
+  const language = normalizeLanguage(input.language);
 
   if (
     (action !== "review" && action !== "confirm") ||
@@ -142,7 +146,9 @@ async function reviewPurchase(input: PurchaseInput) {
   return {
     item: {
       giftId: input.giftId,
-      name: gift.fields?.["Gift Name"] ?? "Gift",
+      name:
+        gift.fields?.["Gift Name"] ??
+        translations[input.language].gifts.fallbackName,
       price:
         typeof gift.fields?.Price === "number" &&
         Number.isFinite(gift.fields.Price)
@@ -166,7 +172,7 @@ export async function POST(request: Request) {
     const body: unknown = await request.json();
 
     if (body && typeof body === "object" && !Array.isArray(body) && "language" in body) {
-      language = body.language === "en" ? "en" : "es";
+      language = normalizeLanguage(body.language);
     }
 
     input = parseInput(body);
@@ -211,7 +217,9 @@ export async function POST(request: Request) {
       }
 
       const reservationId = randomUUID();
-      const giftName = gift.fields?.["Gift Name"] ?? "Gift";
+      const giftName =
+        gift.fields?.["Gift Name"] ??
+        translations[input.language].gifts.fallbackName;
       const purchasedDate = new Date().toISOString();
       const reservationFields: Record<string, unknown> = {
         "Gift Reservation": `${giftName} — ${input.name}`,
@@ -397,7 +405,9 @@ export async function POST(request: Request) {
     invalidateGiftCache();
     await sendPurchaseConfirmation({
       to: input.email,
-      giftName: latestGift.fields?.["Gift Name"] ?? "Gift",
+      giftName:
+        latestGift.fields?.["Gift Name"] ??
+        translations[input.language].gifts.fallbackName,
       language: input.language,
       idempotencyKey: latestReservation.id,
     });

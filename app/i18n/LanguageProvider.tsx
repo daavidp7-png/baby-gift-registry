@@ -1,7 +1,11 @@
 "use client";
 
 import { createContext, useContext, useEffect, useMemo, useSyncExternalStore } from "react";
-import { translations, type Language } from "./translations";
+import {
+  normalizeLanguage,
+  translations,
+  type Language,
+} from "./translations";
 
 const STORAGE_KEY = "baby-registry-language";
 
@@ -15,8 +19,7 @@ const LanguageContext = createContext<LanguageContextValue | null>(null);
 const listeners = new Set<() => void>();
 
 function getStoredLanguage(): Language {
-  const storedLanguage = window.localStorage.getItem(STORAGE_KEY);
-  return storedLanguage === "en" ? "en" : "es";
+  return normalizeLanguage(window.localStorage.getItem(STORAGE_KEY));
 }
 
 function getDefaultLanguage(): Language {

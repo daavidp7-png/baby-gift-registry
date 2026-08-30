@@ -112,6 +112,7 @@ async function getActiveReservationGiftIdsForEmail(email: string) {
 
 export async function getActiveReservationGiftsForEmail(
   email: string,
+  fallbackGiftName: string,
   excludedGiftIds: Iterable<string> = []
 ): Promise<ExistingReservationGift[]> {
   const activeGiftIds = await getActiveReservationGiftIdsForEmail(email);
@@ -150,7 +151,7 @@ export async function getActiveReservationGiftsForEmail(
     return [
       {
         giftId,
-        giftName: gift.fields?.["Gift Name"] ?? "Gift",
+        giftName: gift.fields?.["Gift Name"] ?? fallbackGiftName,
       },
     ];
   });

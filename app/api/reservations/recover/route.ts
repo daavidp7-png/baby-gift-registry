@@ -1,4 +1,8 @@
-import { translations, type Language } from "../../../i18n/translations";
+import {
+  normalizeLanguage,
+  translations,
+  type Language,
+} from "../../../i18n/translations";
 import { airtableRequest } from "../../../lib/airtable";
 
 type AirtableReservation = {
@@ -38,7 +42,7 @@ export async function POST(request: Request) {
 
     const input = body as Record<string, unknown>;
     email = typeof input.email === "string" ? input.email.trim().toLowerCase() : "";
-    language = input.language === "en" ? "en" : "es";
+    language = normalizeLanguage(input.language);
   } catch {
     return Response.json(
       { error: translations[language].favorites.recovery.errors.invalid },

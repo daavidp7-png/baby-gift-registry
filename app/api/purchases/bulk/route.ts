@@ -1,5 +1,9 @@
 import { createHash, randomUUID } from "node:crypto";
-import { translations, type Language } from "../../../i18n/translations";
+import {
+  normalizeLanguage,
+  translations,
+  type Language,
+} from "../../../i18n/translations";
 import { airtableRequest } from "../../../lib/airtable";
 import { sendBulkPurchaseConfirmation } from "../../../lib/email";
 import { invalidateGiftCache } from "../../../lib/giftCache";
@@ -47,7 +51,7 @@ function parseInput(value: unknown): BulkInput | null {
   const name = typeof raw.name === "string" ? raw.name.trim() : "";
   const email = typeof raw.email === "string" ? raw.email.trim().toLowerCase() : "";
   const message = typeof raw.message === "string" ? raw.message.trim() : "";
-  const language: Language = raw.language === "en" ? "en" : "es";
+  const language = normalizeLanguage(raw.language);
   const reviewedClassifications = new Map<string, EligibleClassification>();
 
   if (Array.isArray(raw.reviewedItems)) {
@@ -183,8 +187,10 @@ async function reviewGifts(input: BulkInput): Promise<ReviewItem[]> {
   const reservations = await getActiveReservationsForGiftIds(reservedIds);
   return input.giftIds.map((giftId) => {
     const gift = gifts.get(giftId);
-    if (!gift) return { giftId, name: "Gift", price: 0, classification: "changed", eligible: false };
-    const name = gift.fields?.["Gift Name"] ?? "Gift";
+    if (!gift) return { giftId, name: translations[input.language].gifts.fallbackName, price: 0, classification: "changed", eligible: false };
+    const name =
+      gift.fields?.["Gift Name"] ??
+      translations[input.language].gifts.fallbackName;
     const price = giftPrice(gift);
     const status = publicStatus(gift.fields?.Status);
     if (gift.fields?.Active === false || !status) return { giftId, name, price, classification: "changed", eligible: false, status };
@@ -218,8 +224,8 @@ async function batchDeleteReservations(ids: string[]) {
   if (!response.ok) throw new Error(`Could not roll back purchases (${response.status})`);
 }
 
-function skipped(gift: AirtableGift | undefined, giftId: string, reason: ConfirmItem["reason"]): ConfirmItem {
-  return { giftId, name: gift?.fields?.["Gift Name"] ?? "Gift", outcome: "skipped", reason, status: publicStatus(gift?.fields?.Status) };
+function skipped(gift: AirtableGift | undefined, giftId: string, reason: ConfirmItem["reason"], language: Language): ConfirmItem {
+  return { giftId, name: gift?.fields?.["Gift Name"] ?? translations[language].gifts.fallbackName, outcome: "skipped", reason, status: publicStatus(gift?.fields?.Status) };
 }
 
 async function purchaseAvailableChunks(gifts: AirtableGift[], input: BulkInput) {
@@ -229,7 +235,7 @@ async function purchaseAvailableChunks(gifts: AirtableGift[], input: BulkInput) 
     try {
       created = await batchCreateReservations(group.map((gift) => {
         const fields: Record<string, unknown> = {
-          "Gift Reservation": `${gift.fields?.["Gift Name"] ?? "Gift"} — ${input.name}`,
+          "Gift Reservation": `${gift.fields?.["Gift Name"] ?? translations[input.language].gifts.fallbackName} — ${input.name}`,
           Gift: [gift.id], "Reserved By": input.name, Email: input.email,
           "Reservation ID": randomUUID(), "Reservation Status": "Purchased",
           "Purchased Date": new Date().toISOString(),
@@ -239,7 +245,7 @@ async function purchaseAvailableChunks(gifts: AirtableGift[], input: BulkInput) 
       }));
       if (created.length !== group.length) throw new Error("Airtable returned an incomplete create batch");
       await batchUpdate("Gifts", group.map((gift) => ({ id: gift.id, fields: { Status: "Purchased" } })));
-      results.push(...group.map((gift) => ({ giftId: gift.id, name: gift.fields?.["Gift Name"] ?? "Gift", outcome: "purchased" as const, status: "Purchased" as const })));
+      results.push(...group.map((gift) => ({ giftId: gift.id, name: gift.fields?.["Gift Name"] ?? translations[input.language].gifts.fallbackName, outcome: "purchased" as const, status: "Purchased" as const })));
     } catch (error) {
       if (created.length) {
         const giftsAfterFailure = await getGiftsByIds(
@@ -259,13 +265,13 @@ async function purchaseAvailableChunks(gifts: AirtableGift[], input: BulkInput) 
         );
       }
       console.error("Bulk available purchase chunk error:", error);
-      results.push(...group.map((gift) => skipped(gift, gift.id, "error")));
+      results.push(...group.map((gift) => skipped(gift, gift.id, "error", input.language)));
     }
   }
   return results;
 }
 
-async function purchaseReservedChunks(entries: Array<{ gift: AirtableGift; reservation: AirtableReservation }>) {
+async function purchaseReservedChunks(entries: Array<{ gift: AirtableGift; reservation: AirtableReservation }>, input: BulkInput) {
   const results: ConfirmItem[] = [];
   for (const group of chunks(entries)) {
     try {
@@ -301,10 +307,10 @@ async function purchaseReservedChunks(entries: Array<{ gift: AirtableGift; reser
         }
         throw error;
       }
-      results.push(...group.map(({ gift }) => ({ giftId: gift.id, name: gift.fields?.["Gift Name"] ?? "Gift", outcome: "purchased" as const, status: "Purchased" as const })));
+      results.push(...group.map(({ gift }) => ({ giftId: gift.id, name: gift.fields?.["Gift Name"] ?? translations[input.language].gifts.fallbackName, outcome: "purchased" as const, status: "Purchased" as const })));
     } catch (error) {
       console.error("Bulk reserved purchase chunk error:", error);
-      results.push(...group.map(({ gift }) => skipped(gift, gift.id, "error")));
+      results.push(...group.map(({ gift }) => skipped(gift, gift.id, "error", input.language)));
     }
   }
   return results;
@@ -340,9 +346,9 @@ async function confirmGifts(input: BulkInput): Promise<ConfirmItem[]> {
       const reviewed = input.reviewedClassifications.get(giftId);
 
       if (!gift || gift.fields?.Active === false || !status) {
-        skippedItems.push(skipped(gift, giftId, "changed"));
+        skippedItems.push(skipped(gift, giftId, "changed", input.language));
       } else if (status === "Purchased") {
-        skippedItems.push(skipped(gift, giftId, "purchased"));
+        skippedItems.push(skipped(gift, giftId, "purchased", input.language));
       } else if (
         reviewed === "available" &&
         status === "Available" &&
@@ -360,16 +366,18 @@ async function confirmGifts(input: BulkInput): Promise<ConfirmItem[]> {
         ) {
           reserved.push({ gift, reservation });
         } else {
-          skippedItems.push(skipped(gift, giftId, "reserved_by_other"));
+          skippedItems.push(
+            skipped(gift, giftId, "reserved_by_other", input.language)
+          );
         }
       } else {
-        skippedItems.push(skipped(gift, giftId, "changed"));
+        skippedItems.push(skipped(gift, giftId, "changed", input.language));
       }
     }
 
     const [availableResults, reservedResults] = await Promise.all([
       purchaseAvailableChunks(available, input),
-      purchaseReservedChunks(reserved),
+      purchaseReservedChunks(reserved, input),
     ]);
     results.push(...skippedItems, ...availableResults, ...reservedResults);
     } catch (error) {
@@ -378,7 +386,9 @@ async function confirmGifts(input: BulkInput): Promise<ConfirmItem[]> {
         error,
       });
       results.push(
-        ...giftIdChunk.map((giftId) => skipped(undefined, giftId, "error"))
+        ...giftIdChunk.map((giftId) =>
+          skipped(undefined, giftId, "error", input.language)
+        )
       );
     }
   }
@@ -391,7 +401,7 @@ export async function POST(request: Request) {
   let language: Language = "es";
   try {
     const body: unknown = await request.json();
-    if (body && typeof body === "object" && !Array.isArray(body) && "language" in body) language = body.language === "en" ? "en" : "es";
+    if (body && typeof body === "object" && !Array.isArray(body) && "language" in body) language = normalizeLanguage(body.language);
     input = parseInput(body);
   } catch {
     return Response.json({ error: translations[language].bulkPurchase.errors.invalidRequest }, { status: 400 });

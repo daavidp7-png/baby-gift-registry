@@ -1,5 +1,9 @@
 import { randomUUID } from "node:crypto";
-import { translations, type Language } from "../../i18n/translations";
+import {
+  normalizeLanguage,
+  translations,
+  type Language,
+} from "../../i18n/translations";
 import { airtableRequest } from "../../lib/airtable";
 import { sendReservationConfirmation } from "../../lib/email";
 import { invalidateGiftCache } from "../../lib/giftCache";
@@ -51,7 +55,7 @@ function parseInput(value: unknown): ReservationInput | null {
     typeof input.email === "string" ? input.email.trim().toLowerCase() : "";
   const message =
     typeof input.message === "string" ? input.message.trim() : "";
-  const language: Language = input.language === "en" ? "en" : "es";
+  const language = normalizeLanguage(input.language);
 
   if (
     (action !== "review" && action !== "confirm") ||
@@ -84,7 +88,11 @@ async function reviewReservation(input: ReservationInput) {
       getGift(input.giftId),
       findActiveReservationForGift(input.giftId),
       findBlockingReservationForGift(input.giftId),
-      getActiveReservationGiftsForEmail(input.email, [input.giftId]),
+      getActiveReservationGiftsForEmail(
+        input.email,
+        translations[input.language].gifts.fallbackName,
+        [input.giftId]
+      ),
     ]);
 
   let classification: ReservationClassification = "changed";
@@ -111,7 +119,9 @@ async function reviewReservation(input: ReservationInput) {
   return {
     item: {
       giftId: input.giftId,
-      name: gift.fields?.["Gift Name"] ?? "Gift",
+      name:
+        gift.fields?.["Gift Name"] ??
+        translations[input.language].gifts.fallbackName,
       classification,
       eligible:
         classification === "available" ||
@@ -128,7 +138,7 @@ export async function POST(request: Request) {
   try {
     const body: unknown = await request.json();
     if (body && typeof body === "object" && !Array.isArray(body) && "language" in body) {
-      language = body.language === "en" ? "en" : "es";
+      language = normalizeLanguage(body.language);
     }
     input = parseInput(body);
   } catch {
@@ -194,7 +204,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const giftName = gift.fields["Gift Name"] ?? "Gift";
+    const giftName =
+      gift.fields["Gift Name"] ?? translations[input.language].gifts.fallbackName;
     const reservationId = randomUUID();
     const reservationFields: Record<string, unknown> = {
       "Gift Reservation": `${giftName} — ${input.name}`,

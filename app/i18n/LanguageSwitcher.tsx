@@ -12,6 +12,11 @@ export default function LanguageSwitcher() {
   const pathname = usePathname();
   const compactLanguageSelector =
     pathname === "/gifts" || pathname === "/favorites";
+  const nextLanguage: Record<Language, Language> = {
+    es: "ca",
+    ca: "en",
+    en: "es",
+  };
 
   const option = (value: Language, label: string) => (
     <button
@@ -38,9 +43,13 @@ export default function LanguageSwitcher() {
           <button
             type="button"
             aria-label={
-              language === "es" ? t.language.english : t.language.spanish
+              nextLanguage[language] === "es"
+                ? t.language.spanish
+                : nextLanguage[language] === "ca"
+                  ? t.language.catalan
+                  : t.language.english
             }
-            onClick={() => setLanguage(language === "es" ? "en" : "es")}
+            onClick={() => setLanguage(nextLanguage[language])}
             className="flex h-9 w-9 items-center justify-center rounded-full border border-[#ddcec6] bg-[#f8f4ef]/90 text-[10px] font-medium tracking-[0.08em] text-[#352e2b] shadow-sm backdrop-blur transition-colors hover:bg-[#f1e9e4]"
           >
             {language.toUpperCase()}
@@ -48,6 +57,8 @@ export default function LanguageSwitcher() {
         ) : (
           <div role="group" aria-label={t.language.label} className="flex items-center rounded-full border border-[#ddcec6] bg-[#f8f4ef]/90 px-2.5 py-1.5 text-xs tracking-[0.12em] shadow-sm backdrop-blur">
             {option("es", t.language.spanish)}
+            <span aria-hidden="true" className="mx-1 text-[#c8b9b2]">|</span>
+            {option("ca", t.language.catalan)}
             <span aria-hidden="true" className="mx-1 text-[#c8b9b2]">|</span>
             {option("en", t.language.english)}
           </div>
