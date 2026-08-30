@@ -15,6 +15,20 @@ export const translations = {
       enter: "Entrar",
       loading: "Cargando…",
     },
+    dp: {
+      eyebrow: "Área privada",
+      title: "Actualizar lista de regalos",
+      description:
+        "Introduce la contraseña para invalidar la caché compartida de regalos.",
+      password: "Contraseña",
+      refresh: "Actualizar lista desde Airtable",
+      refreshing: "Actualizando…",
+      success:
+        "Lista actualizada. La próxima carga obtendrá los datos más recientes de Airtable.",
+      unauthorized: "Contraseña incorrecta.",
+      unavailable: "La actualización no está disponible en este momento.",
+      genericError: "No se pudo actualizar la lista. Inténtalo de nuevo.",
+    },
     giftRegistryInfo: {
       eyebrow: "Lista de regalos",
       title: "¿Cómo funciona la lista?",
@@ -271,6 +285,20 @@ export const translations = {
       arrived: "You're here ♡",
       enter: "Enter",
       loading: "Loading…",
+    },
+    dp: {
+      eyebrow: "Private area",
+      title: "Refresh gift list",
+      description:
+        "Enter the password to invalidate the shared gift cache.",
+      password: "Password",
+      refresh: "Refresh list from Airtable",
+      refreshing: "Refreshing…",
+      success:
+        "List refreshed. The next load will fetch the latest data from Airtable.",
+      unauthorized: "Incorrect password.",
+      unavailable: "Refresh is not available right now.",
+      genericError: "The list could not be refreshed. Please try again.",
     },
     giftRegistryInfo: {
       eyebrow: "Gift list",
