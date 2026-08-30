@@ -13,11 +13,11 @@ type PurchaseModalProps = {
   giftName: string;
   expectedStatus: PurchasableStatus;
   onClose: () => void;
-  onPurchased: (message: string) => void;
+  onPurchased: () => void;
   onStatusChanged: (status: CurrentStatus | undefined, message: string) => void;
 };
 
-type SubmitState = "idle" | "submitting" | "error";
+type SubmitState = "idle" | "submitting" | "success" | "error";
 
 type PurchaseResponse = {
   error?: string;
@@ -94,11 +94,8 @@ export default function PurchaseModal({
         return;
       }
 
-      onPurchased(
-        expectedStatus === "Available"
-          ? t.purchase.successDirect
-          : t.purchase.successReserved
-      );
+      setSubmitState("success");
+      onPurchased();
     } catch {
       setError(t.purchase.errors.generic);
       setSubmitState("error");
@@ -114,61 +111,87 @@ export default function PurchaseModal({
       canClose={canClose}
       onClose={onClose}
     >
-      <form onSubmit={submitPurchase} className="mt-5 grid gap-4">
-        <p className="leading-5 text-[#756b67]">
-          {expectedStatus === "Available"
-            ? t.purchase.availableExplanation
-            : t.purchase.reservedExplanation}
-        </p>
-
-        {expectedStatus === "Available" ? (
-          <GiftContactFields
-            nameInputRef={nameInputRef}
-            labels={t.reservation}
-          />
-        ) : (
-          <label className="grid gap-1.5">
-            <span className="font-medium text-[#514844]">
-              {t.purchase.email}
-            </span>
-            <input
-              ref={emailInputRef}
-              name="email"
-              type="email"
-              required
-              maxLength={254}
-              autoComplete="email"
-              className="rounded-lg border border-[#d8cec9] bg-white px-3 py-2.5 outline-none focus:border-[#302b29]"
-            />
-          </label>
-        )}
-
-        {error && (
-          <p role="alert" className="text-[#9d3f3f]">
-            {error}
+      {submitState === "success" ? (
+        <div className="pt-6">
+          <p className="font-semibold text-[#52705b]">
+            {t.purchase.successTitle}
           </p>
-        )}
-
-        <div className="mt-1 flex gap-2">
+          <p className="mt-2 leading-5 text-[#756b67]">
+            {t.purchase.successMessage}
+          </p>
+          <p className="mt-4 rounded-xl bg-[#faf7f5] px-4 py-3 text-[#52705b]">
+            <span aria-hidden="true">✓</span>{" "}
+            <span className="font-medium text-[#302b29]">{giftName}</span>
+            <span className="text-[#756b67]">
+              {" — "}
+              {t.gifts.statuses.purchased}
+            </span>
+          </p>
           <button
             type="button"
-            disabled={!canClose}
             onClick={onClose}
-            className="flex-1 rounded-full border border-[#d8cec9] px-4 py-2.5 font-medium text-[#514844] disabled:opacity-40"
+            className="mt-6 w-full rounded-full bg-[#302b29] px-4 py-2.5 font-medium text-white"
           >
-            {t.purchase.cancel}
-          </button>
-          <button
-            type="submit"
-            disabled={submitState === "submitting"}
-            className="flex-1 rounded-full bg-[#302b29] px-4 py-2.5 font-medium text-white disabled:cursor-wait disabled:opacity-60"
-          >
-            {submitState === "submitting"
-              ? t.purchase.submitting
-              : t.purchase.confirm}
+            {t.purchase.done}
           </button>
         </div>
-      </form>
+      ) : (
+        <form onSubmit={submitPurchase} className="mt-5 grid gap-4">
+          <p className="leading-5 text-[#756b67]">
+            {expectedStatus === "Available"
+              ? t.purchase.availableExplanation
+              : t.purchase.reservedExplanation}
+          </p>
+
+          {expectedStatus === "Available" ? (
+            <GiftContactFields
+              nameInputRef={nameInputRef}
+              labels={t.reservation}
+            />
+          ) : (
+            <label className="grid gap-1.5">
+              <span className="font-medium text-[#514844]">
+                {t.purchase.email}
+              </span>
+              <input
+                ref={emailInputRef}
+                name="email"
+                type="email"
+                required
+                maxLength={254}
+                autoComplete="email"
+                className="rounded-lg border border-[#d8cec9] bg-white px-3 py-2.5 outline-none focus:border-[#302b29]"
+              />
+            </label>
+          )}
+
+          {error && (
+            <p role="alert" className="text-[#9d3f3f]">
+              {error}
+            </p>
+          )}
+
+          <div className="mt-1 flex gap-2">
+            <button
+              type="button"
+              disabled={!canClose}
+              onClick={onClose}
+              className="flex-1 rounded-full border border-[#d8cec9] px-4 py-2.5 font-medium text-[#514844] disabled:opacity-40"
+            >
+              {t.purchase.cancel}
+            </button>
+            <button
+              type="submit"
+              disabled={submitState === "submitting"}
+              className="flex-1 rounded-full bg-[#302b29] px-4 py-2.5 font-medium text-white disabled:cursor-wait disabled:opacity-60"
+            >
+              {submitState === "submitting"
+                ? t.purchase.submitting
+                : t.purchase.confirm}
+            </button>
+          </div>
+        </form>
+      )}
     </ModalDialog>
   );
 }

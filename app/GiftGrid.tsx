@@ -104,10 +104,7 @@ export default function GiftGrid({
   const [giftStatusOverrides, setGiftStatusOverrides] = useState<
     Map<string, GiftStatus>
   >(() => new Map());
-  const [feedback, setFeedback] = useState<{
-    message: string;
-    tone: "success" | "error";
-  } | null>(null);
+  const [feedback, setFeedback] = useState<string | null>(null);
   const [favoriteNoticeVisible, setFavoriteNoticeVisible] = useState(false);
   const hasShownFavoriteNotice = useRef(false);
   const [failedImages, setFailedImages] = useState<Set<string>>(
@@ -273,17 +270,6 @@ export default function GiftGrid({
       return next;
     });
 
-    const purchasedCount = purchasedIds.size;
-    const message =
-      purchasedCount === 0
-        ? t.bulkPurchase.noEligible
-        : purchasedCount === 1
-        ? t.bulkPurchase.purchasedOne
-        : t.bulkPurchase.purchasedMany.replace(
-            "{count}",
-            String(purchasedCount)
-          );
-    setFeedback({ message, tone: purchasedCount > 0 ? "success" : "error" });
     router.refresh();
   };
 
@@ -436,14 +422,10 @@ export default function GiftGrid({
     <>
       {feedback && (
         <div
-          role={feedback.tone === "error" ? "alert" : "status"}
-          className={`mb-6 rounded-[16px] px-4 py-3 text-center text-sm font-medium ${
-            feedback.tone === "success"
-              ? "bg-[#e7f0e8] text-[#52705b]"
-              : "bg-[#f6e7e4] text-[#8a514b]"
-          }`}
+          role="alert"
+          className="mb-6 rounded-[16px] bg-[#f6e7e4] px-4 py-3 text-center text-sm font-medium text-[#8a514b]"
         >
-          {feedback.message}
+          {feedback}
         </div>
       )}
 
@@ -1102,20 +1084,18 @@ export default function GiftGrid({
           giftName={selectedPurchase.name}
           expectedStatus={selectedPurchase.status}
           onClose={() => setSelectedPurchase(null)}
-          onPurchased={(message) => {
+          onPurchased={() => {
             updateGiftStatus(selectedPurchase.id, "Purchased");
             setBulkSelectedGiftIds((current) => {
               const next = new Set(current);
               next.delete(selectedPurchase.id);
               return next;
             });
-            setFeedback({ message, tone: "success" });
-            setSelectedPurchase(null);
             router.refresh();
           }}
           onStatusChanged={(status, message) => {
             if (status) updateGiftStatus(selectedPurchase.id, status);
-            setFeedback({ message, tone: "error" });
+            setFeedback(message);
             setSelectedPurchase(null);
             router.refresh();
           }}

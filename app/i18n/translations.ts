@@ -116,9 +116,9 @@ export const translations = {
       cancel: "Cancelar",
       confirm: "Confirmar compra",
       submitting: "Marcando como comprado…",
-      successDirect: "El regalo se ha marcado como comprado.",
-      successReserved:
-        "La reserva y el regalo se han marcado como comprados.",
+      successTitle: "¡Regalo marcado como comprado!",
+      successMessage: "Gracias. Hemos registrado tu compra.",
+      done: "Listo",
       errors: {
         generic: "No se ha podido marcar este regalo como comprado.",
         invalidRequest: "Solicitud no válida.",
@@ -297,9 +297,9 @@ export const translations = {
       cancel: "Cancel",
       confirm: "Confirm purchase",
       submitting: "Marking as purchased…",
-      successDirect: "The gift has been marked as purchased.",
-      successReserved:
-        "The reservation and gift have been marked as purchased.",
+      successTitle: "Gift marked as purchased!",
+      successMessage: "Thank you. We’ve recorded your purchase.",
+      done: "Done",
       errors: {
         generic: "Could not mark this gift as purchased.",
         invalidRequest: "Invalid request.",
