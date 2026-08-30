@@ -211,12 +211,12 @@ async function safeSendEmail(
 
 function footer(language: Language) {
   if (language === "en") {
-    return "Alina is still growing and getting ready to arrive. For now, her little hands are far too busy to answer emails, so there’s no need to reply to this message.";
+    return "I’m busy growing and perfecting my little kicks. I’ll leave replying to emails for later. ♡";
   }
   if (language === "ca") {
-    return "L’Alina encara està creixent i preparant-se per arribar. De moment, té les mans massa ocupades per respondre els correus, així que no cal que responguis aquest missatge.";
+    return "Estic ocupada creixent i perfeccionant les meves puntadetes. Això de contestar correus ho deixaré per més endavant. ♡";
   }
-  return "Alina todavía está creciendo y preparándose para llegar. De momento, tiene las manos demasiado ocupadas para responder a los correos, así que no hace falta que respondas a este mensaje.";
+  return "Estoy ocupada creciendo y perfeccionando mis pataditas. Lo de contestar emails lo dejaré para más adelante. ♡";
 }
 
 function shippingInformation(language: Language) {
@@ -329,13 +329,12 @@ function reservationContent(giftNames: string[], language: Language) {
         : "You reserved a gift\nfor Alina 🎁",
       paragraphs: multiple
         ? [
-            "Thank you for reserving these gifts for Alina!",
+            "Thank you for reserving these gifts and helping us prepare for Alina’s arrival!",
             "We've saved them for you on our list.",
           ]
         : [
             `You reserved “${giftNames[0]}”.`,
-            "Thank you for helping us prepare for Alina’s arrival.",
-            "Thank you for reserving this gift for Alina!",
+            "Thank you for reserving this gift and helping us prepare for Alina’s arrival!",
             "We've saved it for you on our list.",
             "Once you have bought it, return to the gift list and mark it as purchased using this same email address.",
           ],
@@ -362,13 +361,12 @@ function reservationContent(giftNames: string[], language: Language) {
         : "Has reservat un regal\nper a l’Alina 🎁",
       paragraphs: multiple
         ? [
-            "Gràcies per reservar aquests regals per a l’Alina!",
+            "Gràcies per reservar aquests regals i ajudar-nos a preparar l’arribada de l’Alina!",
             "Els hem desat per a tu a la nostra llista.",
           ]
         : [
             `Has reservat “${giftNames[0]}”.`,
-            "Gràcies per ajudar-nos a preparar l’arribada de l’Alina.",
-            "Gràcies per reservar aquest regal per a l’Alina!",
+            "Gràcies per reservar aquest regal i ajudar-nos a preparar l’arribada de l’Alina!",
             "L’hem desat per a tu a la nostra llista.",
             "Quan l’hagis comprat, torna a la llista i marca’l com a comprat utilitzant aquesta mateixa adreça de correu electrònic.",
           ],
@@ -394,13 +392,12 @@ function reservationContent(giftNames: string[], language: Language) {
       : "Has reservado un regalo\npara Alina 🎁",
     paragraphs: multiple
       ? [
-          "¡Gracias por reservar estos regalos para Alina!",
+          "¡Gracias por reservar estos regalos y ayudarnos a preparar la llegada de Alina!",
           "Los hemos guardado para ti en nuestra lista.",
         ]
       : [
           `Has reservado “${giftNames[0]}”.`,
-          "Gracias por ayudarnos a preparar la llegada de Alina.",
-          "¡Gracias por reservar este regalo para Alina!",
+          "¡Gracias por reservar este regalo y ayudarnos a preparar la llegada de Alina!",
           "Lo hemos guardado para ti en nuestra lista.",
           "Cuando lo hayas comprado, vuelve a la lista y márcalo como comprado usando este mismo correo electrónico.",
         ],
