@@ -734,7 +734,7 @@ export default function GiftGrid({
                   type="button"
                   onClick={() => setFiltersOpen(false)}
                   aria-label={t.gifts.filters.close}
-                  className="p-1.5 text-[#302b29]"
+                  className="-mr-1.5 flex h-11 w-11 shrink-0 items-center justify-center text-[#302b29]"
                 >
                   <svg
                     aria-hidden="true"
@@ -966,7 +966,7 @@ export default function GiftGrid({
             </p>
           </div>
           <div className="text-left sm:text-right">
-            <p className="text-sm text-[#756b67]">
+            <p className="min-w-0 text-sm text-[#756b67] [overflow-wrap:anywhere]">
               {replaceTemplateValue(
                 t.favorites.recovery.recoveredFor,
                 "email",
@@ -1136,26 +1136,30 @@ export default function GiftGrid({
                     aria-label={`${t.bulkPurchase.selectGift}: ${name}`}
                     aria-pressed={bulkSelected}
                     onClick={() => toggleBulkGift(gift.id)}
-                    className={`absolute left-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full border shadow-sm backdrop-blur transition-colors ${
-                      bulkSelected
-                        ? "border-[#302b29] bg-[#302b29] text-white"
-                        : "border-white/70 bg-white/90 text-[#756b67]"
-                    }`}
+                    className="absolute left-2 top-2 z-10 flex h-11 w-11 items-center justify-center"
                   >
-                    <svg
-                      aria-hidden="true"
-                      viewBox="0 0 24 24"
-                      className="h-4 w-4"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
+                    <span
+                      className={`flex h-9 w-9 items-center justify-center rounded-full border shadow-sm backdrop-blur transition-colors ${
+                        bulkSelected
+                          ? "border-[#302b29] bg-[#302b29] text-white"
+                          : "border-white/70 bg-white/90 text-[#756b67]"
+                      }`}
                     >
-                      {bulkSelected ? (
-                        <path d="m5 12 4 4L19 6" />
-                      ) : (
-                        <circle cx="12" cy="12" r="8" />
-                      )}
-                    </svg>
+                      <svg
+                        aria-hidden="true"
+                        viewBox="0 0 24 24"
+                        className="h-4 w-4"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                      >
+                        {bulkSelected ? (
+                          <path d="m5 12 4 4L19 6" />
+                        ) : (
+                          <circle cx="12" cy="12" r="8" />
+                        )}
+                      </svg>
+                    </span>
                   </button>
                 )}
 
@@ -1168,18 +1172,20 @@ export default function GiftGrid({
                   }
                   aria-pressed={favoriteIds.has(gift.id)}
                   onClick={() => toggleGiftFavorite(gift.id)}
-                  className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-white/70 bg-white/90 text-[#9d615d] shadow-sm backdrop-blur transition-transform hover:scale-105"
+                  className="absolute right-2 top-2 z-10 flex h-11 w-11 items-center justify-center text-[#9d615d]"
                 >
-                  <svg
-                    aria-hidden="true"
-                    viewBox="0 0 24 24"
-                    className="h-4.5 w-4.5"
-                    fill={favoriteIds.has(gift.id) ? "currentColor" : "none"}
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                  >
-                    <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z" />
-                  </svg>
+                  <span className="flex h-9 w-9 items-center justify-center rounded-full border border-white/70 bg-white/90 shadow-sm backdrop-blur transition-transform hover:scale-105">
+                    <svg
+                      aria-hidden="true"
+                      viewBox="0 0 24 24"
+                      className="h-4.5 w-4.5"
+                      fill={favoriteIds.has(gift.id) ? "currentColor" : "none"}
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                    >
+                      <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z" />
+                    </svg>
+                  </span>
                 </button>
 
                 {image && !imageFailed ? (
@@ -1213,14 +1219,14 @@ export default function GiftGrid({
               <div className="p-5 sm:flex sm:flex-1 sm:flex-col">
                 <div>
                   <div className="mb-2 flex items-start justify-between gap-2">
-                    <div>
+                    <div className="min-w-0">
                       {Brand && (
-                        <p className="text-xs uppercase tracking-[0.18em] text-[#a18e86]">
+                        <p className="break-words text-xs uppercase tracking-[0.18em] text-[#a18e86] [overflow-wrap:anywhere]">
                           {Brand}
                         </p>
                       )}
 
-                      <h2 className="mt-1 text-xl font-semibold">{name}</h2>
+                      <h2 className="mt-1 break-words text-xl font-semibold [overflow-wrap:anywhere]">{name}</h2>
 
                       {Category && (
                         <p className="mt-1 text-sm text-[#8b807b]">

@@ -179,7 +179,10 @@ export default function DpPage() {
                   </p>
                   <ul className="mt-1 list-disc space-y-1 pl-5">
                     {syncResult.failures.map((failure, index) => (
-                      <li key={`${failure.giftName}-${failure.reason}-${index}`}>
+                      <li
+                        key={`${failure.giftName}-${failure.reason}-${index}`}
+                        className="break-words [overflow-wrap:anywhere]"
+                      >
                         {failure.giftName}: {failureReason(failure.reason)}
                       </li>
                     ))}

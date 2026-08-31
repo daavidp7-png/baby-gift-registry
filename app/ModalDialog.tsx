@@ -120,7 +120,7 @@ export default function ModalDialog({
             aria-label={closeLabel}
             disabled={!canClose}
             onClick={onClose}
-            className="p-1 text-[#756b67] disabled:opacity-40"
+            className="-mr-2 -mt-2 flex h-11 w-11 shrink-0 items-center justify-center text-[#756b67] disabled:opacity-40"
           >
             <svg
               aria-hidden="true"

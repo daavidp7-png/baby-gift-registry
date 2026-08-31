@@ -50,9 +50,11 @@ export default function LanguageSwitcher() {
                   : t.language.english
             }
             onClick={() => setLanguage(nextLanguage[language])}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-[#ddcec6] bg-[#f8f4ef]/90 text-[10px] font-medium tracking-[0.08em] text-[#352e2b] shadow-sm backdrop-blur transition-colors hover:bg-[#f1e9e4]"
+            className="-m-1 flex h-11 w-11 items-center justify-center text-[10px] font-medium tracking-[0.08em] text-[#352e2b]"
           >
-            {language.toUpperCase()}
+            <span className="flex h-9 w-9 items-center justify-center rounded-full border border-[#ddcec6] bg-[#f8f4ef]/90 shadow-sm backdrop-blur transition-colors hover:bg-[#f1e9e4]">
+              {language.toUpperCase()}
+            </span>
           </button>
         ) : (
           <div role="group" aria-label={t.language.label} className="flex items-center rounded-full border border-[#ddcec6] bg-[#f8f4ef]/90 px-2.5 py-1.5 text-xs tracking-[0.12em] shadow-sm backdrop-blur">
@@ -69,25 +71,27 @@ export default function LanguageSwitcher() {
         href="/favorites"
         aria-label={t.favorites.navigation}
         aria-current={pathname === "/favorites" ? "page" : undefined}
-        className={`fixed right-5 top-5 z-40 flex h-9 w-9 items-center justify-center rounded-full border border-[#ddcec6] bg-[#f8f4ef]/90 shadow-sm backdrop-blur transition-colors hover:bg-[#f1e9e4] sm:right-8 sm:top-7 ${
+        className={`fixed right-4 top-4 z-40 flex h-11 w-11 items-center justify-center sm:right-7 sm:top-6 ${
           pathname === "/favorites" ? "text-[#9d615d]" : "text-[#5d514c]"
         }`}
       >
-        <svg
-          aria-hidden="true"
-          viewBox="0 0 24 24"
-          className="h-4 w-4"
-          fill={favoriteIds.size > 0 ? "currentColor" : "none"}
-          stroke="currentColor"
-          strokeWidth="1.5"
-        >
-          <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z" />
-        </svg>
-        {favoriteIds.size > 0 && (
-          <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#9d615d] px-1 text-[9px] leading-none text-white">
-            {favoriteIds.size}
+        <span className="relative flex h-9 w-9 items-center justify-center rounded-full border border-[#ddcec6] bg-[#f8f4ef]/90 shadow-sm backdrop-blur transition-colors hover:bg-[#f1e9e4]">
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 24 24"
+            className="h-4 w-4"
+            fill={favoriteIds.size > 0 ? "currentColor" : "none"}
+            stroke="currentColor"
+            strokeWidth="1.5"
+          >
+            <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z" />
+          </svg>
+          {favoriteIds.size > 0 && (
+            <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#9d615d] px-1 text-[9px] leading-none text-white">
+              {favoriteIds.size}
+            </span>
+          )}
           </span>
-        )}
       </Link>
     </>
   );

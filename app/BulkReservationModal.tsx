@@ -215,7 +215,7 @@ export default function BulkReservationModal({
       canClose={!busy}
       onClose={onClose}
     >
-      <div className="max-h-[72vh] overflow-y-auto pr-1">
+      <div>
         {(step === "form" || step === "reviewing") && (
           <form onSubmit={reviewReservation} className="mt-5 grid gap-4">
             <p className="leading-5 text-[#756b67]">{t.bulkReservation.intro}</p>
@@ -238,7 +238,7 @@ export default function BulkReservationModal({
 
             {error && <p role="alert" className="text-[#9d3f3f]">{error}</p>}
 
-            <div className="mt-1 flex gap-2">
+            <div className="mt-1 flex flex-col gap-2 min-[360px]:flex-row">
               <button
                 type="button"
                 disabled={busy}
@@ -308,7 +308,7 @@ export default function BulkReservationModal({
                       <span aria-hidden="true" className="text-[#52705b]">
                         ✓
                       </span>
-                      <span className="font-medium text-[#302b29]">
+                      <span className="break-words font-medium text-[#302b29] [overflow-wrap:anywhere]">
                         {gift.giftName}
                       </span>
                     </li>
@@ -334,7 +334,7 @@ export default function BulkReservationModal({
                     {positiveClassification(item.classification) ? "✓" : "✕"}
                   </span>
                   <span className="min-w-0">
-                    <span className="font-medium text-[#302b29]">{item.name}</span>
+                    <span className="break-words font-medium text-[#302b29] [overflow-wrap:anywhere]">{item.name}</span>
                     <span className="text-[#756b67]">
                       {" — "}
                       {classificationLabel(item.classification)}
@@ -351,7 +351,7 @@ export default function BulkReservationModal({
             )}
             {error && <p role="alert" className="mt-3 text-[#9d3f3f]">{error}</p>}
 
-            <div className="mt-5 flex gap-2">
+            <div className="mt-5 flex flex-col gap-2 min-[360px]:flex-row">
               <button
                 type="button"
                 disabled={step === "processing"}
@@ -421,7 +421,7 @@ export default function BulkReservationModal({
                       : "✕"}
                   </span>
                   <span>
-                    <span className="font-medium text-[#302b29]">{item.name}</span>
+                    <span className="break-words font-medium text-[#302b29] [overflow-wrap:anywhere]">{item.name}</span>
                     <span className="text-[#756b67]">
                       {" — "}
                       {resultLabel(item)}

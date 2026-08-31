@@ -163,7 +163,7 @@ export default function ReservationModal({
             labels={t.reservation}
           />
           {error && <p role="alert" className="text-[#9d3f3f]">{error}</p>}
-          <div className="mt-1 flex gap-2">
+          <div className="mt-1 flex flex-col gap-2 min-[360px]:flex-row">
             <button
               type="button"
               disabled={busy}
@@ -213,7 +213,7 @@ export default function ReservationModal({
                     className="flex items-start gap-2 rounded-xl bg-[#faf7f5] px-3 py-2.5"
                   >
                     <span aria-hidden="true" className="text-[#52705b]">✓</span>
-                    <span className="font-medium text-[#302b29]">
+                    <span className="break-words font-medium text-[#302b29] [overflow-wrap:anywhere]">
                       {gift.giftName}
                     </span>
                   </li>
@@ -230,7 +230,7 @@ export default function ReservationModal({
               {positive ? "✓" : "✕"}
             </span>
             <span>
-              <span className="font-medium text-[#302b29]">{reviewItem.name}</span>
+              <span className="break-words font-medium text-[#302b29] [overflow-wrap:anywhere]">{reviewItem.name}</span>
               <span className="text-[#756b67]">
                 {" — "}{classificationLabel(reviewItem.classification)}
               </span>
@@ -243,7 +243,7 @@ export default function ReservationModal({
             </p>
           )}
           {error && <p role="alert" className="mt-3 text-[#9d3f3f]">{error}</p>}
-          <div className="mt-5 flex gap-2">
+          <div className="mt-5 flex flex-col gap-2 min-[360px]:flex-row">
             <button
               type="button"
               disabled={busy}
