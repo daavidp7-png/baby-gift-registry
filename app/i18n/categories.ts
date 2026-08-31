@@ -10,6 +10,7 @@ export const englishCategoryTranslations: Record<string, string> = {
   Linería: "Linens",
   Regalos: "Gifts",
   "Ropita bebe": "Baby Clothes",
+  Salón: "Living Room",
 };
 
 export const catalanCategoryTranslations: Record<string, string> = {
@@ -22,6 +23,7 @@ export const catalanCategoryTranslations: Record<string, string> = {
   Linería: "Roba de llit i tèxtils",
   Regalos: "Regals",
   "Ropita bebe": "Roba de nadó",
+  Salón: "Sala d'estar",
 };
 
 export function getLocalizedCategory(

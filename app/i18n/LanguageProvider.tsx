@@ -46,6 +46,7 @@ export default function LanguageProvider({ children }: { children: React.ReactNo
 
   useEffect(() => {
     document.documentElement.lang = language;
+    document.title = translations[language].home.title;
   }, [language]);
 
   const value = useMemo(

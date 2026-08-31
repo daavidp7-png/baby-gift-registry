@@ -109,7 +109,7 @@ body {
 }
 
 .price-range-fill {
-  background: #302b29;
+  background: #a57f72;
 }
 
 .price-range-control input[type="range"] {
@@ -141,10 +141,10 @@ body {
   height: 14px;
   margin-top: -6px;
   appearance: none;
-  border: 2px solid white;
+  border: 2px solid #a57f72;
   border-radius: 999px;
-  background: #302b29;
-  box-shadow: 0 0 0 1px #302b29;
+  background: #fffaf6;
+  box-shadow: 0 0 0 1px #a57f72;
   cursor: grab;
   pointer-events: auto;
 }
@@ -157,20 +157,20 @@ body {
 .price-range-control input[type="range"]::-moz-range-thumb {
   width: 12px;
   height: 12px;
-  border: 2px solid white;
+  border: 2px solid #a57f72;
   border-radius: 999px;
-  background: #302b29;
-  box-shadow: 0 0 0 1px #302b29;
+  background: #fffaf6;
+  box-shadow: 0 0 0 1px #a57f72;
   cursor: grab;
   pointer-events: auto;
 }
 
 .price-range-control input[type="range"]:focus-visible::-webkit-slider-thumb {
-  outline: 3px solid #d8cec9;
+  outline: 3px solid #ddcec6;
   outline-offset: 3px;
 }
 
 .price-range-control input[type="range"]:focus-visible::-moz-range-thumb {
-  outline: 3px solid #d8cec9;
+  outline: 3px solid #ddcec6;
   outline-offset: 3px;
 }

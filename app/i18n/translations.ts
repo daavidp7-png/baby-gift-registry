@@ -13,7 +13,7 @@ export const translations = {
       english: "Inglés",
     },
     home: {
-      title: "Bienvenida, pequeña",
+      title: "Bienvenida, Alina",
       description: "Un pequeño espacio creado con amor mientras esperamos tu llegada.",
       countdownIntro: "Faltan para tu llegada",
       days: "Días",
@@ -305,7 +305,7 @@ export const translations = {
       english: "Anglès",
     },
     home: {
-      title: "Benvinguda, petita",
+      title: "Benvinguda, Alina",
       description: "Un petit espai creat amb amor mentre esperem la teva arribada.",
       countdownIntro: "Falten per a la teva arribada",
       days: "Dies",
@@ -600,7 +600,7 @@ export const translations = {
       english: "English",
     },
     home: {
-      title: "Welcome, little one",
+      title: "Welcome, Alina",
       description: "A little space created with love while we wait for you.",
       countdownIntro: "Until you arrive",
       days: "Days",

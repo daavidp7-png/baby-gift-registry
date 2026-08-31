@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import LanguageProvider from "./i18n/LanguageProvider";
 import LanguageSwitcher from "./i18n/LanguageSwitcher";
+import { translations } from "./i18n/translations";
 import "./globals.css";
 
 const inter = Inter({
@@ -12,7 +13,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://alinaperezurrutia.com"),
-  title: "Bienvenida, pequeña",
+  title: translations.es.home.title,
   description: "Un pequeño espacio creado con amor mientras esperamos tu llegada.",
   openGraph: {
     title: "Lista de regalos de Alina",

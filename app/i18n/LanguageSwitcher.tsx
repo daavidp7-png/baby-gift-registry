@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { useFavorites } from "../lib/favorites";
 import { useLanguage } from "./LanguageProvider";
 import type { Language } from "./translations";
@@ -10,21 +11,57 @@ export default function LanguageSwitcher() {
   const { language, setLanguage, t } = useLanguage();
   const { favoriteIds } = useFavorites();
   const pathname = usePathname();
+  const [compactSelectorExpanded, setCompactSelectorExpanded] = useState(false);
+  const compactSelectorRef = useRef<HTMLDivElement>(null);
+  const compactTriggerRef = useRef<HTMLButtonElement>(null);
+  const compactActiveOptionRef = useRef<HTMLButtonElement>(null);
   const compactLanguageSelector =
     pathname === "/gifts" || pathname === "/favorites";
-  const nextLanguage: Record<Language, Language> = {
-    es: "ca",
-    ca: "en",
-    en: "es",
-  };
 
-  const option = (value: Language, label: string) => (
+  useEffect(() => {
+    if (!compactSelectorExpanded) return;
+
+    compactActiveOptionRef.current?.focus();
+
+    const closeOnOutsidePointer = (event: PointerEvent) => {
+      if (!compactSelectorRef.current?.contains(event.target as Node)) {
+        setCompactSelectorExpanded(false);
+      }
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setCompactSelectorExpanded(false);
+      window.requestAnimationFrame(() => compactTriggerRef.current?.focus());
+    };
+
+    document.addEventListener("pointerdown", closeOnOutsidePointer);
+    window.addEventListener("keydown", closeOnEscape);
+
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsidePointer);
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [compactSelectorExpanded]);
+
+  const option = (
+    value: Language,
+    label: string,
+    compact = false
+  ) => (
     <button
+      ref={compact && language === value ? compactActiveOptionRef : undefined}
       type="button"
       aria-pressed={language === value}
       aria-label={label}
-      onClick={() => setLanguage(value)}
-      className={`px-1 py-0.5 transition-colors ${
+      onClick={() => {
+        setLanguage(value);
+        if (compact) setCompactSelectorExpanded(false);
+      }}
+      className={`${
+        compact
+          ? "flex h-11 min-w-11 items-center justify-center px-2 focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-[#9a756d]"
+          : "px-1 py-0.5"
+      } transition-colors ${
         language === value ? "font-medium text-[#352e2b]" : "font-normal text-[#9a8d86] hover:text-[#5d514c]"
       }`}
     >
@@ -40,22 +77,43 @@ export default function LanguageSwitcher() {
         }`}
       >
         {compactLanguageSelector ? (
-          <button
-            type="button"
-            aria-label={
-              nextLanguage[language] === "es"
-                ? t.language.spanish
-                : nextLanguage[language] === "ca"
-                  ? t.language.catalan
-                  : t.language.english
-            }
-            onClick={() => setLanguage(nextLanguage[language])}
-            className="-m-1 flex h-11 w-11 items-center justify-center text-[10px] font-medium tracking-[0.08em] text-[#352e2b]"
+          <div
+            ref={compactSelectorRef}
+            className={`-m-1 flex h-11 items-center overflow-hidden text-[10px] tracking-[0.08em] transition-[width] duration-200 motion-reduce:transition-none ${
+              compactSelectorExpanded
+                ? "w-[9.25rem] rounded-full border border-[#ddcec6] bg-[#f8f4ef]/90 shadow-sm backdrop-blur"
+                : "w-11"
+            }`}
           >
-            <span className="flex h-9 w-9 items-center justify-center rounded-full border border-[#ddcec6] bg-[#f8f4ef]/90 shadow-sm backdrop-blur transition-colors hover:bg-[#f1e9e4]">
-              {language.toUpperCase()}
-            </span>
-          </button>
+            {compactSelectorExpanded ? (
+              <div
+                id="compact-language-options"
+                role="group"
+                aria-label={t.language.label}
+                className="flex h-11 min-w-max items-center"
+              >
+                {option("es", t.language.spanish, true)}
+                <span aria-hidden="true" className="text-[#c8b9b2]">|</span>
+                {option("ca", t.language.catalan, true)}
+                <span aria-hidden="true" className="text-[#c8b9b2]">|</span>
+                {option("en", t.language.english, true)}
+              </div>
+            ) : (
+              <button
+                ref={compactTriggerRef}
+                type="button"
+                aria-expanded="false"
+                aria-controls="compact-language-options"
+                aria-label={`${t.language.label}: ${language.toUpperCase()}`}
+                onClick={() => setCompactSelectorExpanded(true)}
+                className="flex h-11 w-11 shrink-0 items-center justify-center font-medium text-[#352e2b] focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-[#9a756d]"
+              >
+                <span className="flex h-9 w-9 items-center justify-center rounded-full border border-[#ddcec6] bg-[#f8f4ef]/90 shadow-sm backdrop-blur transition-colors hover:bg-[#f1e9e4]">
+                  {language.toUpperCase()}
+                </span>
+              </button>
+            )}
+          </div>
         ) : (
           <div role="group" aria-label={t.language.label} className="flex items-center rounded-full border border-[#ddcec6] bg-[#f8f4ef]/90 px-2.5 py-1.5 text-xs tracking-[0.12em] shadow-sm backdrop-blur">
             {option("es", t.language.spanish)}
