@@ -23,6 +23,7 @@ import {
 } from "./i18n/categories";
 import { useLanguage } from "./i18n/LanguageProvider";
 import { useFavorites } from "./lib/favorites";
+import { getLocalizedGiftDescription } from "./lib/giftDescriptionLocalization";
 import PurchaseModal from "./PurchaseModal";
 import ReservationModal from "./ReservationModal";
 
@@ -38,6 +39,8 @@ export type GiftRecord = {
     Brand?: string;
     Category?: string;
     Description?: string;
+    "Description CA"?: string;
+    "Description EN"?: string;
     Image?: AirtableAttachment[];
     "Product URL"?: string;
     Store?: string;
@@ -572,6 +575,8 @@ export default function GiftGrid({
           category,
           category ? getCategorySearchLabels(category).join(" ") : undefined,
           gift.fields.Description,
+          gift.fields["Description CA"],
+          gift.fields["Description EN"],
           gift.fields.Store,
         ]
           .filter((value): value is string => Boolean(value))
@@ -1157,7 +1162,6 @@ export default function GiftGrid({
           const {
             Brand,
             Category,
-            Description,
             Image: giftImages,
             Price,
             Priority,
@@ -1165,6 +1169,7 @@ export default function GiftGrid({
           } = gift.fields;
 
           const name = gift.fields["Gift Name"] ?? t.gifts.fallbackName;
+          const description = getLocalizedGiftDescription(gift.fields, language);
           const productUrl = gift.fields["Product URL"];
           const image = giftImages?.[0]?.url;
           const imageFailed = failedImages.has(gift.id);
@@ -1295,9 +1300,9 @@ export default function GiftGrid({
                     )}
                   </div>
 
-                  {Description && (
+                  {description && (
                     <ExpandableDescription
-                      description={Description}
+                      description={description}
                       seeMoreLabel={t.gifts.seeMore}
                       seeLessLabel={t.gifts.seeLess}
                     />
