@@ -242,11 +242,9 @@ export async function POST(request: Request) {
     );
 
     if (!createResponse.ok) {
-      const airtableErrorBody = await createResponse.text().catch(() => "");
       console.error("Airtable reservation creation failed", {
         status: createResponse.status,
         statusText: createResponse.statusText,
-        error: airtableErrorBody || "(empty response body)",
       });
       throw new Error(`Could not create reservation (${createResponse.status})`);
     }

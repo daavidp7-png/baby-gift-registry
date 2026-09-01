@@ -1,25 +1,59 @@
 import "server-only";
 
-const MAX_RATE_LIMIT_RETRIES = 2;
-const DEFAULT_RETRY_DELAY_MS = 500;
+const MAX_RATE_LIMIT_RETRIES = 1;
+const MAX_RETRY_WAIT_MS = 5_000;
+const BILLING_LIMIT_ERROR = "PUBLIC_API_BILLING_LIMIT_EXCEEDED";
 
-function retryDelay(response: Response, attempt: number) {
+function retryDelay(response: Response) {
   const retryAfter = response.headers.get("retry-after");
 
-  if (retryAfter) {
-    const seconds = Number(retryAfter);
+  if (!retryAfter) return null;
 
-    if (Number.isFinite(seconds)) return Math.max(0, seconds * 1000);
+  const seconds = Number(retryAfter);
 
-    const date = Date.parse(retryAfter);
-    if (Number.isFinite(date)) return Math.max(0, date - Date.now());
+  if (Number.isFinite(seconds)) {
+    const milliseconds = Math.max(0, seconds * 1000);
+    return milliseconds > 0 && milliseconds <= MAX_RETRY_WAIT_MS
+      ? milliseconds
+      : null;
   }
 
-  return DEFAULT_RETRY_DELAY_MS * 2 ** attempt;
+  const date = Date.parse(retryAfter);
+  if (Number.isFinite(date)) {
+    const milliseconds = Math.max(0, date - Date.now());
+    return milliseconds > 0 && milliseconds <= MAX_RETRY_WAIT_MS
+      ? milliseconds
+      : null;
+  }
+
+  return null;
 }
 
 function wait(milliseconds: number) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+async function isBillingLimitResponse(response: Response) {
+  try {
+    const payload: unknown = await response.clone().json();
+    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+      return false;
+    }
+
+    const error = (payload as Record<string, unknown>).error;
+    if (error === BILLING_LIMIT_ERROR) return true;
+    if (!error || typeof error !== "object" || Array.isArray(error)) {
+      return false;
+    }
+
+    const details = error as Record<string, unknown>;
+    return (
+      details.type === BILLING_LIMIT_ERROR ||
+      details.code === BILLING_LIMIT_ERROR
+    );
+  } catch {
+    return false;
+  }
 }
 
 export function getAirtableConfig() {
@@ -54,6 +88,11 @@ export async function airtableRequest(
       return response;
     }
 
-    await wait(retryDelay(response, attempt));
+    if (await isBillingLimitResponse(response)) return response;
+
+    const delay = retryDelay(response);
+    if (delay === null) return response;
+
+    await wait(delay);
   }
 }

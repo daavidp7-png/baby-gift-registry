@@ -98,7 +98,10 @@ async function readAllGifts() {
     const data = (await response.json()) as AirtableGiftPage;
 
     if (!response.ok) {
-      console.error("Airtable image sync read failed:", data);
+      console.error("Airtable image sync read failed", {
+        status: response.status,
+        statusText: response.statusText,
+      });
       throw new Error(`Could not read Gifts (${response.status})`);
     }
 
@@ -116,7 +119,10 @@ async function stillHasNoImage(giftId: string) {
   const gift = (await response.json()) as AirtableGift;
 
   if (!response.ok) {
-    console.error("Airtable image sync safety read failed:", gift);
+    console.error("Airtable image sync safety read failed", {
+      status: response.status,
+      statusText: response.statusText,
+    });
     throw new Error(`Could not re-read Gift (${response.status})`);
   }
 
@@ -133,11 +139,10 @@ async function attachImage(giftId: string, imageUrl: string) {
   );
 
   if (!response.ok) {
-    const error = await response.text();
-    console.error(
-      `Airtable image sync update failed (${response.status}):`,
-      error
-    );
+    console.error("Airtable image sync update failed", {
+      status: response.status,
+      statusText: response.statusText,
+    });
     throw new Error(`Could not update Gift image (${response.status})`);
   }
 }

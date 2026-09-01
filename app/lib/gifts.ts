@@ -23,7 +23,10 @@ async function loadGifts(): Promise<GiftRecord[]> {
     const data = (await response.json()) as GiftListPage;
 
     if (!response.ok) {
-      console.error("Airtable Gifts error:", data);
+      console.error("Airtable Gifts request failed", {
+        status: response.status,
+        statusText: response.statusText,
+      });
       throw new Error(`Could not load gifts from Airtable (${response.status})`);
     }
 
