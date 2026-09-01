@@ -59,7 +59,7 @@ export default function OpenGraphImage() {
             lineHeight: 1.05,
           }}
         >
-          Bienvenida, pequeña
+          Bienvenida, Alina
         </div>
 
         <div
